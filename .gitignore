@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Raw external data
+data/raw/ArknightsGameData/
+
+# Optional: generated files
+# data/processed/operators.json
