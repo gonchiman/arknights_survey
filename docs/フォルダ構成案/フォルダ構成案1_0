@@ -1,0 +1,27 @@
+arknights_damage_calculator/
+│
+├─ app.py
+├─ requirements.txt
+├─ README.md
+│
+├─ data/
+│  ├─ raw/
+│  │  └─ ArknightsGameData/
+│  │     └─ character_table.json
+│  │
+│  └─ processed/
+│     └─ operators.json
+│
+├─ scripts/
+│  └─ build_operators.py
+│
+└─ src/
+├─ models/
+│  └─ operator.py
+│
+├─ services/
+│  ├─ damage_calculator.py
+│  └─ operator_loader.py
+│
+└─ ui/
+└─ operator_selector.py
