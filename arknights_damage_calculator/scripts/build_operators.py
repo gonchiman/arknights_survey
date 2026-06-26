@@ -56,11 +56,6 @@ def main():
     operators = []
 
     for character_id, character in character_table.items():
-        # 星6だけ抽出
-        # ArknightsGameDataでは 星6 = rarity 5
-        if character.get("rarity") != "TIER_6":
-            continue
-
         operator = build_operator(character_id, character)
 
         if operator is not None:
