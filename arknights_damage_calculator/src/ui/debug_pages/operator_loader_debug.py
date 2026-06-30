@@ -3,7 +3,12 @@ from pathlib import Path
 
 import streamlit as st
 
-from src.services.operator_loader import load_operator_dicts, load_operators
+from src.services.operator_loader import (
+    filter_playable_operators,
+    find_operator_by_id,
+    load_operator_dicts,
+    load_operators,
+)
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
@@ -19,7 +24,7 @@ def to_display_data(value):
 def render_debug_operator_loader_page():
     st.title("デバッグ: operator_loader.py")
 
-    st.write("`operator_loader.py` の関数が作るデータを確認します。")
+    st.write("`operator_loader.py` の各関数が作るデータを確認します。")
 
     operators_path = st.text_input(
         "operators.json のパス",
@@ -59,3 +64,37 @@ def render_debug_operator_loader_page():
         ]
 
         st.json(display_operators)
+
+        st.subheader("filter_playable_operators()")
+
+        playable_operators = filter_playable_operators(operators)
+
+        st.write("作られるもの: プレイアブルオペレーターだけのリスト")
+        st.write("型:", type(playable_operators).__name__)
+        st.write("件数:", len(playable_operators))
+
+        display_playable_operators = [
+            to_display_data(operator)
+            for operator in playable_operators[:display_limit]
+        ]
+
+        st.json(display_playable_operators)
+
+        st.subheader("find_operator_by_id()")
+
+        operator_ids = [operator.id for operator in operators]
+
+        selected_operator_id = st.selectbox(
+            "検索する operator_id",
+            operator_ids,
+        )
+
+        found_operator = find_operator_by_id(selected_operator_id, path)
+
+        st.write("作られるもの: 指定したIDに一致する Operator")
+        st.write("検索ID:", selected_operator_id)
+
+        if found_operator is None:
+            st.warning("一致するオペレーターが見つかりませんでした。")
+        else:
+            st.json(to_display_data(found_operator))
