@@ -24,8 +24,6 @@ def to_display_data(value):
 def render_debug_operator_loader_page():
     st.title("デバッグ: operator_loader.py")
 
-    st.write("`operator_loader.py` の各関数が作るデータを確認します。")
-
     operators_path = st.text_input(
         "operators.json のパス",
         value=str(DEFAULT_OPERATORS_PATH),
@@ -38,9 +36,21 @@ def render_debug_operator_loader_page():
         value=1,
     )
 
-    if st.button("読み込む"):
-        path = Path(operators_path)
+    selected_function = st.selectbox(
+        "確認する関数",
+        [
+            "load_operator_dicts()",
+            "load_operators()",
+            "filter_playable_operators()",
+            "find_operator_by_id()",
+        ],
+    )
 
+    path = Path(operators_path)
+
+    st.divider()
+
+    if selected_function == "load_operator_dicts()":
         st.subheader("load_operator_dicts()")
 
         data = load_operator_dicts(path)
@@ -50,6 +60,7 @@ def render_debug_operator_loader_page():
         st.write("件数:", len(data))
         st.json(data[:display_limit])
 
+    elif selected_function == "load_operators()":
         st.subheader("load_operators()")
 
         operators = load_operators(path)
@@ -65,8 +76,10 @@ def render_debug_operator_loader_page():
 
         st.json(display_operators)
 
+    elif selected_function == "filter_playable_operators()":
         st.subheader("filter_playable_operators()")
 
+        operators = load_operators(path)
         playable_operators = filter_playable_operators(operators)
 
         st.write("作られるもの: プレイアブルオペレーターだけのリスト")
@@ -80,8 +93,10 @@ def render_debug_operator_loader_page():
 
         st.json(display_playable_operators)
 
+    elif selected_function == "find_operator_by_id()":
         st.subheader("find_operator_by_id()")
 
+        operators = load_operators(path)
         operator_ids = [operator.id for operator in operators]
 
         selected_operator_id = st.selectbox(
