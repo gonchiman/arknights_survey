@@ -8,6 +8,15 @@ def get_operator_display_name(operator):
     )
 
 
+def get_operator_damage_type(operator):
+    damage_type = getattr(operator, "damage_type", None)
+
+    if damage_type is None:
+        return None
+
+    return str(damage_type).strip().lower()
+
+
 def find_operator_by_name(operators, name):
     for operator in operators:
         if operator.name == name:
