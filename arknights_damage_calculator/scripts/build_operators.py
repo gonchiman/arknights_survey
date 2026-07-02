@@ -4,7 +4,16 @@ from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 
-RAW_CHARACTER_TABLE_PATH = ROOT_DIR / "data" / "raw" / "ArknightsGameData" / "character_table.json"
+RAW_CHARACTER_TABLE_PATH = (
+    ROOT_DIR
+    / "data"
+    / "raw"
+    / "ArknightsGameData"
+    / "en_US"
+    / "gamedata"
+    / "excel"
+    / "character_table.json"
+)
 OUTPUT_OPERATORS_PATH = ROOT_DIR / "data" / "processed" / "operators.json"
 
 
