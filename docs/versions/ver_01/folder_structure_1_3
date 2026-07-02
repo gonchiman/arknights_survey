@@ -1,0 +1,32 @@
+arknights_damage_calculator/
+├─ app.py
+├─ data/
+│  └─ processed/
+│     └─ operators.json
+├─ docs/
+│  └─ damage_formula_summary.md
+├─ scripts/
+│  ├─ check_all.py
+│  ├─ check_damage_calculator.py
+│  ├─ check_operator_loader.py
+│  ├─ check_operator_model.py
+│  ├─ check_operators_json.py
+│  ├─ check_output.py
+│  └─ checks/
+│     └─ check_operator_loader.py
+└─ src/
+   ├─ models/
+   │  └─ operator.py
+   ├─ services/
+   │  ├─ damage_calculator.py
+   │  └─ operator_loader.py
+   └─ ui/
+      ├─ operator_selector.py
+      ├─ damage_calculators/
+      │  └─ damage_calculator_01.py
+      ├─ debug_pages/
+      │  ├─ damage_calculator_debug.py
+      │  └─ operator_loader_debug.py
+      └─ pages/
+         ├─ damage_calculators_page.py
+         └─ debugs_page.py
