@@ -1,5 +1,0 @@
-https://github.com/Kengxxiao/ArknightsGameData
-https://github.com/Kengxxiao/ArknightsGameData_YoStar
-
-ArknightsGameData_YoStar をどう使っているかの参考例：
-https://gitlab.com/RockRoller/ak-story-length
