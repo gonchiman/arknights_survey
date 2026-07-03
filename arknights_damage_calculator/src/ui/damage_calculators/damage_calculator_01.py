@@ -16,15 +16,6 @@ except ModuleNotFoundError:
     )
 
 
-def _get_default_damage_type_index(operator, damage_type_options):
-    operator_damage_type = get_operator_damage_type(operator)
-
-    if operator_damage_type in damage_type_options:
-        return damage_type_options.index(operator_damage_type)
-
-    return 0
-
-
 def render_damage_calculator_01(data_path):
     import streamlit as st
 
@@ -50,13 +41,13 @@ def render_damage_calculator_01(data_path):
     render_operator_summary(selected_operator)
 
     st.subheader("ダメージ条件")
-    damage_type_options = ["physical", "arts"]
-    damage_type = st.selectbox(
-        "ダメージ種別",
-        damage_type_options,
-        index=_get_default_damage_type_index(selected_operator, damage_type_options),
-        key="damage_calculator_01_damage_type",
-    )
+    damage_type = get_operator_damage_type(selected_operator)
+    st.write({"ダメージ種別": damage_type})
+
+    if damage_type not in {"physical", "arts"}:
+        st.error(f"未対応のダメージ種別です: {damage_type}")
+        return
+
     enemy_def = st.number_input(
         "敵防御力",
         min_value=0,
