@@ -9,7 +9,7 @@ RAW_CHARACTER_TABLE_PATH = (
     / "data"
     / "raw"
     / "ArknightsGameData_YoStar"
-    / "en_US"
+    / "ja_JP"
     / "gamedata"
     / "excel"
     / "character_table.json"
