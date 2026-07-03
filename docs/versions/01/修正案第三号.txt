@@ -1,0 +1,25 @@
+オペレーター選択の改善
+絞り込みを可能にする
+
+
+現在：
+selected_operator = render_operator_selector(
+    operators,
+    label="オペレーターを選択",
+    key="damage_calculator_01_operator",
+)
+でプルダウン形式でオペレーターを選択することができるのだが、
+オペレーターが大量に存在するので、特定のオペレーターを探して
+選択することは非常に難しい
+
+
+改善案：
+レアリティ、職業、職分でオペレーターを絞り込み、
+プルダウンに表示するオペレーターを少なくする
+
+
+修正ファイル：
+arknights_damage_calculator/src/ui/operator_selector.py
+arknights_damage_calculator/src/ui/damage_calculators/damage_calculator_01.py
+arknights_damage_calculator/src/services/operator_loader.py
+arknights_damage_calculator/src/ui/debug_pages/operator_loader_debug.py
