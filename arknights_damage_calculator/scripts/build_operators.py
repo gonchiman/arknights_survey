@@ -8,7 +8,7 @@ RAW_CHARACTER_TABLE_PATH = (
     ROOT_DIR
     / "data"
     / "raw"
-    / "ArknightsGameData"
+    / "ArknightsGameData_YoStar"
     / "en_US"
     / "gamedata"
     / "excel"
