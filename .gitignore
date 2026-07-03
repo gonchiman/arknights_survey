@@ -13,7 +13,8 @@ Thumbs.db
 .vscode/
 
 # Raw external data
-data/raw/ArknightsGameData/
+arknights_damage_calculator/data/raw/ArknightsGameData/
+arknights_damage_calculator/data/raw/ArknightsGameData_YoStar/
 
 # Optional: generated files
 # data/processed/operators.json
