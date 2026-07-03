@@ -61,6 +61,8 @@ def render_debug_operator_loader_page():
             "name": selected_operator.name,
             "rarity": selected_operator.rarity,
             "stars": selected_operator.rarity_stars,
+            "profession": selected_operator.profession,
+            "sub_profession_id": selected_operator.sub_profession_id,
             "damage_type": selected_operator.damage_type,
             "max_hp": selected_operator.stats.max_hp,
             "atk": selected_operator.stats.atk,

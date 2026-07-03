@@ -1,6 +1,6 @@
 try:
     from src.services.damage_calculator import EnemyStats, calculate_damage_by_type
-    from src.services.operator_loader import load_operators
+    from src.services.operator_loader import filter_playable_operators, load_operators
     from src.ui.operator_selector import (
         get_operator_damage_type,
         render_operator_selector,
@@ -8,7 +8,7 @@ try:
     )
 except ModuleNotFoundError:
     from services.damage_calculator import EnemyStats, calculate_damage_by_type
-    from services.operator_loader import load_operators
+    from services.operator_loader import filter_playable_operators, load_operators
     from ui.operator_selector import (
         get_operator_damage_type,
         render_operator_selector,
@@ -23,7 +23,7 @@ def render_damage_calculator_01(data_path):
     st.caption("ver1.0 用の通常攻撃ダメージ計算機")
 
     try:
-        operators = load_operators(data_path)
+        operators = filter_playable_operators(load_operators(data_path))
     except Exception as error:
         st.error(f"operators.json の読み込みに失敗しました: {error}")
         return
