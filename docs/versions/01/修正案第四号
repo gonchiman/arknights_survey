@@ -1,0 +1,25 @@
+ダメージの表示形式を変更する
+
+
+現在：
+
+st.subheader("通常攻撃ダメージ")
+st.metric("ダメージ", damage)
+st.write(
+    {
+        "damage_type": damage_type,
+        "atk": selected_operator.stats.atk,
+        "enemy_def": enemy.defense,
+        "enemy_res": enemy.resistance,
+    }
+)
+という出力になっている。
+
+
+修正案：
+
+グラフ形式で出力する。
+横軸は時間、縦軸はダメージで、
+棒グラフと累積折れ線グラフを表示する。
+横軸の時間はUIで指定できる。
+ダメージは、攻撃間隔ごとに発生する。
