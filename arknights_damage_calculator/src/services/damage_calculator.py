@@ -63,29 +63,3 @@ def calculate_normal_attack(operator, enemy=None):
 def calculate_normal_attack_damage(operator, enemy_def=0, enemy_res=0):
     enemy = EnemyStats(defense=enemy_def, resistance=enemy_res)
     return calculate_normal_attack(operator, enemy).damage
-
-
-def calculate_attack_timeline(damage, duration_seconds, attack_interval_seconds):
-    if duration_seconds < 0:
-        raise ValueError("duration_seconds must be 0 or greater")
-
-    if attack_interval_seconds <= 0:
-        raise ValueError("attack_interval_seconds must be greater than 0")
-
-    attack_count = int(duration_seconds // attack_interval_seconds)
-    timeline = []
-    cumulative_damage = 0
-
-    for attack_index in range(1, attack_count + 1):
-        attack_time = round(attack_index * attack_interval_seconds, 2)
-        cumulative_damage += damage
-
-        timeline.append(
-            {
-                "time": attack_time,
-                "damage": damage,
-                "cumulative_damage": cumulative_damage,
-            }
-        )
-
-    return timeline
