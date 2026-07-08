@@ -1,0 +1,51 @@
+C:\Users\legen\Documents\arknights_survey\arknights_damage_calculator\src\ui\damage_calculators\damage_calculator_01.pyの修正
+
+
+ダメージ計算機の機能としてはバージョン１の要件を満たしている。
+問題は、streamlitの表示である。
+表示内容が少々冗長に思える。
+streamlitはダメージ計算機の最低限の機能を可視化できれば良い。
+冗長に感じるのは、
+
+st.subheader("オペレーター情報")
+render_operator_summary(selected_operator)
+
+st.subheader("ダメージ条件")
+damage_type = get_operator_damage_type(selected_operator)
+st.write({"ダメージ種別": damage_type})
+
+の部分の表示である。
+このページで最も表示したいのは、
+
+st.subheader("通常攻撃ダメージ")
+st.metric("ダメージ", damage)
+st.write(
+    {
+        "damage_type": damage_type,
+        "atk": selected_operator.stats.atk,
+        "enemy_def": enemy.defense,
+        "enemy_res": enemy.resistance,
+    }
+)
+
+の部分のはずであるが、冗長部分のせいでダメージ表示部分がスクロールしないと確認することができない。
+オペレーター情報、ダメージ条件の表示が不要とは思わないが、表示するにしてもダメージ出力よりも下にするべきである。
+
+オペレーター情報の全ての非表示にしても情報がブラックボックスになりすぎるので、
+テーブル形式で、
+ダメージ種別
+基礎攻撃力
+を表示する。
+
+st.subheader("使用する式")
+if damage_type == "physical":
+    st.code(
+        "物理ダメージ = max(攻撃力 - 敵防御力, 攻撃力 * 0.05)",
+        language="text",
+    )
+else:
+    st.code(
+        "術ダメージ = 攻撃力 * max(100 - 敵術耐性, 5) / 100",
+        language="text",
+    )
+の削除は不要。
