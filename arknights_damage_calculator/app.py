@@ -17,8 +17,6 @@ from src.ui.pages.debugs_page import render_debugs_page
 DATA_PATH = PROJECT_ROOT / "data" / "processed" / "operators.json"
 
 
-st.sidebar.title("ページ")
-
 page = st.sidebar.radio(
     "表示するページ",
     [
