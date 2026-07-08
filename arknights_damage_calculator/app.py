@@ -22,18 +22,12 @@ st.sidebar.title("ページ")
 page = st.sidebar.radio(
     "表示するページ",
     [
-        "ホーム",
         "ダメージ計算機",
         "デバッグ",
     ],
 )
 
-if page == "ホーム":
-    st.title("Arknights Damage Calculator")
-    st.write("このアプリでは、アークナイツのダメージ計算を確認できます。")
-    st.write("左のサイドバーから、ダメージ計算機またはデバッグページへ移動できます。")
-
-elif page == "ダメージ計算機":
+if page == "ダメージ計算機":
     render_damage_calculators_page(DATA_PATH)
 
 elif page == "デバッグ":
