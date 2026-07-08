@@ -4,7 +4,6 @@ try:
     from src.ui.operator_selector import (
         get_operator_damage_type,
         render_operator_selector,
-        render_operator_summary,
     )
 except ModuleNotFoundError:
     from services.damage_calculator import EnemyStats, calculate_damage_by_type
@@ -12,7 +11,6 @@ except ModuleNotFoundError:
     from ui.operator_selector import (
         get_operator_damage_type,
         render_operator_selector,
-        render_operator_summary,
     )
 
 
@@ -37,12 +35,7 @@ def render_damage_calculator_01(data_path):
     if selected_operator is None:
         return
 
-    st.subheader("オペレーター情報")
-    render_operator_summary(selected_operator)
-
-    st.subheader("ダメージ条件")
     damage_type = get_operator_damage_type(selected_operator)
-    st.write({"ダメージ種別": damage_type})
 
     if damage_type not in {"physical", "arts"}:
         st.error(f"未対応のダメージ種別です: {damage_type}")
@@ -69,12 +62,11 @@ def render_damage_calculator_01(data_path):
 
     st.subheader("通常攻撃ダメージ")
     st.metric("ダメージ", damage)
-    st.write(
+
+    st.table(
         {
-            "damage_type": damage_type,
-            "atk": selected_operator.stats.atk,
-            "enemy_def": enemy.defense,
-            "enemy_res": enemy.resistance,
+            "項目": ["ダメージ種別", "基礎攻撃力"],
+            "値": [damage_type, selected_operator.stats.atk],
         }
     )
 
