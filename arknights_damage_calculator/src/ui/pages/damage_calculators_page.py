@@ -12,7 +12,7 @@ def render_damage_calculators_page(data_path):
     st.title("Damage Calculators")
 
     calculator = st.selectbox(
-        "使用する計算機",
+        "計算機のバージョンを選択",
         [
             "damage_calculator_01",
         ],

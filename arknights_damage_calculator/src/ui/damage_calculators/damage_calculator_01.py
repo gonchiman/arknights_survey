@@ -18,7 +18,6 @@ def render_damage_calculator_01(data_path):
     import streamlit as st
 
     st.title("Damage Calculator 01")
-    st.caption("ver1.0 用の通常攻撃ダメージ計算機")
 
     try:
         operators = filter_playable_operators(load_operators(data_path))
