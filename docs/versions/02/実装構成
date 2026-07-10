@@ -1,0 +1,16 @@
+src/
+├─ models/
+│  ├─ operator.py
+│  └─ trait.py                    新規
+│
+├─ services/
+│  ├─ damage_calculator.py        既存の基本式
+│  └─ trait_calculator.py         新規
+│
+└─ ui/
+   ├─ damage_calculators/
+   │  ├─ damage_calculator_01.py  完成済み・原則変更しない
+   │  └─ damage_calculator_02.py  新規
+   │
+   └─ pages/
+      └─ damage_calculators_page.py

@@ -1,0 +1,12 @@
+1. docs/versions/02/overview_2_0.md
+2. src/models/trait.py
+3. scripts/build_operators.py
+4. src/models/operator.py
+5. src/services/operator_loader.py
+6. src/services/trait_calculator.py
+7. src/services/damage_calculator_v2.py
+8. scripts/check_trait_calculator.py
+9. scripts/check_damage_calculator_v2.py
+10. src/ui/damage_calculators/damage_calculator_02.py
+11. src/ui/pages/damage_calculators_page.py
+12. デバッグページ関連
