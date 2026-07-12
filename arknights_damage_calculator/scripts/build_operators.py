@@ -56,6 +56,7 @@ def build_operator(character_id, character):
         "magic_resistance": attributes.get("magicResistance"),
         "base_attack_time": attributes.get("baseAttackTime"),
         "block_cnt": attributes.get("blockCnt"),
+        "trait": character.get("trait"),
     }
 
 
