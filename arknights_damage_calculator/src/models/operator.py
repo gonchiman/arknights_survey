@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+from src.models.trait import Trait
+
 
 @dataclass
 class OperatorStats:
@@ -33,6 +35,7 @@ class Operator:
     base_attack_time: float
     block_cnt: int
     damage_type: str
+    trait: Trait | None = None
 
     @classmethod
     def from_dict(cls, data):
@@ -52,6 +55,7 @@ class Operator:
                 "damage_type",
                 infer_damage_type(data["profession"], data["sub_profession_id"]),
             ),
+            trait=Trait.from_dict(data.get("trait")),
         )
 
     @property
