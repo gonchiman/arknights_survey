@@ -1,0 +1,8 @@
+Trait
+└─ 特性候補の一覧を保持する
+
+TraitCandidate
+└─ 解放段階、必要潜在段階、説明文、blackboardを保持する
+
+TraitBlackboardItem
+└─ atk_scale などの計算用パラメータを保持する
