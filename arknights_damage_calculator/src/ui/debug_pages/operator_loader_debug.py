@@ -10,6 +10,59 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DATA_PATH = PROJECT_ROOT / "data" / "processed" / "operators.json"
 
 
+def _render_trait_debug(st, operator_dict, operator):
+    st.subheader("trait")
+
+    st.write("raw trait")
+    raw_trait = operator_dict.get("trait") if operator_dict else None
+
+    if raw_trait is None:
+        st.info("operators.json の trait は null です。")
+    else:
+        st.json(raw_trait)
+
+    st.write("loaded Trait")
+
+    if operator.trait is None:
+        st.info("Operator.trait は None です。")
+        return
+
+    st.write(
+        {
+            "type": type(operator.trait).__name__,
+            "candidate_count": len(operator.trait.candidates),
+        }
+    )
+
+    for index, candidate in enumerate(operator.trait.candidates, start=1):
+        with st.expander(f"candidate {index}", expanded=index == 1):
+            st.write(
+                {
+                    "unlock_phase": candidate.unlock_phase,
+                    "unlock_level": candidate.unlock_level,
+                    "required_potential_rank": candidate.required_potential_rank,
+                    "description": candidate.description,
+                    "prefab_key": candidate.prefab_key,
+                    "range_id": candidate.range_id,
+                }
+            )
+
+            if not candidate.blackboard:
+                st.info("blackboard は空です。")
+                continue
+
+            st.table(
+                [
+                    {
+                        "key": item.key,
+                        "value": item.value,
+                        "value_str": item.value_str,
+                    }
+                    for item in candidate.blackboard
+                ]
+            )
+
+
 def render_debug_operator_loader_page():
     import streamlit as st
 
@@ -70,6 +123,17 @@ def render_debug_operator_loader_page():
             "res": selected_operator.stats.resistance,
         }
     )
+
+    selected_operator_dict = next(
+        (
+            operator_dict
+            for operator_dict in operator_dicts
+            if operator_dict.get("id") == selected_operator.id
+        ),
+        None,
+    )
+
+    _render_trait_debug(st, selected_operator_dict, selected_operator)
 
 
 def render_operator_loader_debug_page():
