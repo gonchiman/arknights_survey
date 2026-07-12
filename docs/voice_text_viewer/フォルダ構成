@@ -1,0 +1,19 @@
+arknights_survey/
+├─ arknights_damage_calculator/
+└─ arknights_voice_text_viewer/
+   ├─ app.py
+   ├─ src/
+   │  ├─ models/
+   │  │  ├─ operator.py
+   │  │  └─ voice_line.py
+   │  ├─ services/
+   │  │  ├─ operator_loader.py
+   │  │  └─ voice_line_loader.py
+   │  └─ ui/
+   │     └─ voice_text_page.py
+   ├─ data/
+   │  └─ processed/
+   │     ├─ operators.json
+   │     └─ voice_lines.json
+   └─ scripts/
+      └─ build_voice_data.py

@@ -1,0 +1,8 @@
+1. charword_table.jsonの構造確認
+2. src/models/voice_line.py
+3. scripts/build_voice_data.py
+4. data/processed/voice_lines.json
+5. src/services/voice_line_loader.py
+6. src/ui/voice_text_page.py
+7. app.py
+8. オペレーター検索・ボイス分類などの改善
