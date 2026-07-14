@@ -3,9 +3,10 @@ from pathlib import Path
 
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
+REPOSITORY_ROOT = ROOT_DIR.parent
 
 RAW_CHARACTER_TABLE_PATH = (
-    ROOT_DIR
+    REPOSITORY_ROOT
     / "data"
     / "raw"
     / "ArknightsGameData_YoStar"
