@@ -138,7 +138,7 @@ export default function HomeScreen() {
         </ThemedView>
 
         <ThemedText type="small" themeColor="textSecondary" style={styles.note}>
-          現在の実音声対応は、アーミヤの「Appointed as Assistant（CN_001）」のみです。
+          アーミヤの実音声は、「ボイス一覧」から選んで再生できます。
         </ThemedText>
       </SafeAreaView>
     </ScrollView>
