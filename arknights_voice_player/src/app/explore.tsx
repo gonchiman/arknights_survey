@@ -14,7 +14,10 @@ import { ThemedView } from '@/components/themed-view';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import type { VoiceLine, VoiceOperator } from '@/models/voice-line';
-import { hasVoiceAudio, useAppAudioPlayer } from '@/player/audio-player-provider';
+import {
+  useAppAudioPlayer,
+  type VoiceAudioLibraryStatus,
+} from '@/player/audio-player-provider';
 import {
   getVoiceCatalog,
   searchVoiceLines,
@@ -51,7 +54,7 @@ function VoiceCard({
   voice: VoiceLine;
 }) {
   const theme = useTheme();
-  const { playVoice } = useAppAudioPlayer();
+  const { hasVoiceAudio, playVoice } = useAppAudioPlayer();
   const title = voice.title || voice.voiceId || voice.id;
   const canPlay = hasVoiceAudio(voice);
 
@@ -88,8 +91,40 @@ function VoiceCard({
   );
 }
 
+function AudioLibraryNotice({
+  availableVoiceCount,
+  status,
+}: {
+  availableVoiceCount: number;
+  status: VoiceAudioLibraryStatus;
+}) {
+  let message: string;
+
+  switch (status) {
+    case 'loading':
+      message = 'ローカル音声を確認しています。';
+      break;
+    case 'ready':
+      message = `アーミヤの英語ボイス${availableVoiceCount}件を再生できます。音声が配布されていない項目だけ「音声未配置」と表示されます。`;
+      break;
+    case 'missing':
+      message = '音声がまだありません。npm.cmd run download:amiya-audio を実行してから、ページを再読み込みしてください。';
+      break;
+    case 'unsupported':
+      message = '現在のローカル音声読み込みはWeb版に対応しています。ネイティブ版の端末キャッシュ対応は次の段階で実装します。';
+      break;
+  }
+
+  return (
+    <ThemedView type="backgroundElement" style={styles.notice}>
+      <ThemedText type="small">{message}</ThemedText>
+    </ThemedView>
+  );
+}
+
 export default function VoiceCatalogScreen() {
   const theme = useTheme();
+  const { availableVoiceCount, voiceAudioLibraryStatus } = useAppAudioPlayer();
   const [query, setQuery] = useState('');
   const [voiceQuery, setVoiceQuery] = useState('');
   const [selectedOperator, setSelectedOperator] = useState<VoiceOperator | null>(null);
@@ -145,12 +180,10 @@ export default function VoiceCatalogScreen() {
             <ThemedText type="small" themeColor="textSecondary">
               {filteredVoices.length}件を表示
             </ThemedText>
-            <ThemedView type="backgroundElement" style={styles.notice}>
-              <ThemedText type="small">
-                現在はアーミヤの「Appointed as Assistant（CN_001）」だけ再生できます。
-                ほかのボイスは音声ファイルを追加するまで再生できません。
-              </ThemedText>
-            </ThemedView>
+            <AudioLibraryNotice
+              availableVoiceCount={availableVoiceCount}
+              status={voiceAudioLibraryStatus}
+            />
           </SafeAreaView>
         }
       />

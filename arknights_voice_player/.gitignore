@@ -36,6 +36,7 @@ yarn-error.*
 # Game audio is kept locally and is not committed.
 /assets/audio/*
 !/assets/audio/test.wav
+/public/audio/
 
 # typescript
 *.tsbuildinfo

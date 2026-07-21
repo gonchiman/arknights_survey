@@ -12,6 +12,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
 } from 'react';
 import { Platform } from 'react-native';
@@ -19,12 +20,18 @@ import { Platform } from 'react-native';
 import type { VoiceLine, VoiceOperator } from '@/models/voice-line';
 
 const testAudioSource = require('@/assets/audio/test.wav');
-const voiceAudioSources: Record<string, AudioSource> = {
-  'char_002_amiya/CN_001': require('@/assets/audio/voice_en/char_002_amiya/CN_001.mp3'),
+const voiceAudioManifestUrl = '/audio/voice_en/manifest.json';
+
+export type VoiceAudioLibraryStatus = 'loading' | 'ready' | 'missing' | 'unsupported';
+
+type VoiceAudioManifest = {
+  assetPaths: string[];
 };
 
-export function hasVoiceAudio(voice: VoiceLine) {
-  return voice.assetPath in voiceAudioSources;
+function getWebVoiceAudioSource(assetPath: string): AudioSource {
+  const encodedPath = assetPath.split('/').map(encodeURIComponent).join('/');
+
+  return { uri: `/audio/voice_en/${encodedPath}.mp3` };
 }
 
 export type PlayerTrack = {
@@ -46,13 +53,16 @@ const initialTrack: PlayerTrack = {
 };
 
 type AudioPlayerContextValue = {
+  availableVoiceCount: number;
   currentTrack: PlayerTrack;
+  hasVoiceAudio: (voice: VoiceLine) => boolean;
   pause: () => void;
   play: () => Promise<void>;
   playVoice: (operator: VoiceOperator, voice: VoiceLine) => void;
   player: AudioPlayer;
   reset: () => Promise<void>;
   status: AudioStatus;
+  voiceAudioLibraryStatus: VoiceAudioLibraryStatus;
 };
 
 const AudioPlayerContext = createContext<AudioPlayerContextValue | null>(null);
@@ -73,6 +83,47 @@ export function AudioPlayerProvider({ children }: PropsWithChildren) {
   const player = useAudioPlayer(testAudioSource, { updateInterval: 250 });
   const status = useAudioPlayerStatus(player);
   const [currentTrack, setCurrentTrack] = useState(initialTrack);
+  const [availableVoiceAssets, setAvailableVoiceAssets] = useState<ReadonlySet<string>>(
+    () => new Set()
+  );
+  const [voiceAudioLibraryStatus, setVoiceAudioLibraryStatus] =
+    useState<VoiceAudioLibraryStatus>(Platform.OS === 'web' ? 'loading' : 'unsupported');
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    void fetch(voiceAudioManifestUrl, { signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error(`Voice audio manifest returned ${response.status}.`);
+        }
+
+        return (await response.json()) as VoiceAudioManifest;
+      })
+      .then((manifest) => {
+        const assetPaths = Array.isArray(manifest.assetPaths)
+          ? manifest.assetPaths.filter((assetPath): assetPath is string => typeof assetPath === 'string')
+          : [];
+
+        setAvailableVoiceAssets(new Set(assetPaths));
+        setVoiceAudioLibraryStatus('ready');
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        console.warn('Local voice audio is not ready.', error);
+        setAvailableVoiceAssets(new Set());
+        setVoiceAudioLibraryStatus('missing');
+      });
+
+    return () => controller.abort();
+  }, []);
 
   useEffect(() => {
     void setAudioModeAsync({
@@ -110,11 +161,14 @@ export function AudioPlayerProvider({ children }: PropsWithChildren) {
     await player.seekTo(0);
   }, [player]);
 
+  const hasVoiceAudio = useCallback(
+    (voice: VoiceLine) => availableVoiceAssets.has(voice.assetPath),
+    [availableVoiceAssets]
+  );
+
   const playVoice = useCallback(
     (operator: VoiceOperator, voice: VoiceLine) => {
-      const audioSource = voiceAudioSources[voice.assetPath];
-
-      if (!audioSource) {
+      if (Platform.OS !== 'web' || !availableVoiceAssets.has(voice.assetPath)) {
         return;
       }
 
@@ -128,19 +182,43 @@ export function AudioPlayerProvider({ children }: PropsWithChildren) {
       };
 
       player.pause();
-      player.replace(audioSource);
+      player.replace(getWebVoiceAudioSource(voice.assetPath));
       setCurrentTrack(track);
       setLockScreenTrack(player, track);
       player.play();
     },
-    [player]
+    [availableVoiceAssets, player]
+  );
+
+  const contextValue = useMemo(
+    () => ({
+      availableVoiceCount: availableVoiceAssets.size,
+      currentTrack,
+      hasVoiceAudio,
+      pause,
+      play,
+      playVoice,
+      player,
+      reset,
+      status,
+      voiceAudioLibraryStatus,
+    }),
+    [
+      availableVoiceAssets.size,
+      currentTrack,
+      hasVoiceAudio,
+      pause,
+      play,
+      playVoice,
+      player,
+      reset,
+      status,
+      voiceAudioLibraryStatus,
+    ]
   );
 
   return (
-    <AudioPlayerContext.Provider
-      value={{ currentTrack, pause, play, playVoice, player, reset, status }}>
-      {children}
-    </AudioPlayerContext.Provider>
+    <AudioPlayerContext.Provider value={contextValue}>{children}</AudioPlayerContext.Provider>
   );
 }
 

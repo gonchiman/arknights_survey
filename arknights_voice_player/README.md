@@ -8,21 +8,24 @@
 - 380オペレーター、15,817件の英語ボイステキスト表示
 - オペレーター名・ID検索
 - ボイスタイトル・本文・ID検索
-- アーミヤの「Appointed as Assistant（CN_001）」の英語音声再生
+- アーミヤ3形態の英語音声107件をボイスごとに再生
 - バックグラウンド再生とロック画面情報表示のネイティブ設定
 
-現在、実音声に対応しているのはアーミヤの`CN_001`だけです。ほかのボイスの再生ボタンは、対応する音声ファイルを追加するまで無効になります。
+実音声はGit管理の対象外です。最初に次のコマンドを実行すると、アーミヤ3形態のうち入手元に存在する107件だけを`public/audio/voice_en`へ保存します。
 
-実音声はGit管理の対象外です。各自のPCで、次の場所に配置してください。
-
-```text
-assets/audio/voice_en/char_002_amiya/CN_001.mp3
+```powershell
+npm.cmd run download:amiya-audio
 ```
+
+誕生日ボイス（`CN_043`）3件は入手元にファイルがないため、再生ボタンが「音声未配置」のままになります。取得した音声とローカル目録はGitHubへpushされません。
+
+取得元は非公式の[PseudoMon/arknights-audio](https://github.com/PseudoMon/arknights-audio/tree/global-server-voices/voice_en)です。音声の権利はゲームの権利者に帰属するため、個人の動作確認に限って利用し、音声ファイルを公開・再配布しないでください。
 
 ## 起動
 
 ```powershell
 npm.cmd install
+npm.cmd run download:amiya-audio
 npm.cmd run web
 ```
 
