@@ -33,6 +33,10 @@ yarn-error.*
 # local env files
 .env*.local
 
+# Game audio is kept locally and is not committed.
+/assets/audio/*
+!/assets/audio/test.wav
+
 # typescript
 *.tsbuildinfo
 
