@@ -3,6 +3,7 @@ import {
   useAudioPlayer,
   useAudioPlayerStatus,
   type AudioPlayer,
+  type AudioSource,
   type AudioStatus,
 } from 'expo-audio';
 import {
@@ -18,6 +19,13 @@ import { Platform } from 'react-native';
 import type { VoiceLine, VoiceOperator } from '@/models/voice-line';
 
 const testAudioSource = require('@/assets/audio/test.wav');
+const voiceAudioSources: Record<string, AudioSource> = {
+  'char_002_amiya/CN_001': require('@/assets/audio/voice_en/char_002_amiya/CN_001.mp3'),
+};
+
+export function hasVoiceAudio(voice: VoiceLine) {
+  return voice.assetPath in voiceAudioSources;
+}
 
 export type PlayerTrack = {
   id: string;
@@ -41,7 +49,7 @@ type AudioPlayerContextValue = {
   currentTrack: PlayerTrack;
   pause: () => void;
   play: () => Promise<void>;
-  playVoiceDemo: (operator: VoiceOperator, voice: VoiceLine) => void;
+  playVoice: (operator: VoiceOperator, voice: VoiceLine) => void;
   player: AudioPlayer;
   reset: () => Promise<void>;
   status: AudioStatus;
@@ -102,19 +110,25 @@ export function AudioPlayerProvider({ children }: PropsWithChildren) {
     await player.seekTo(0);
   }, [player]);
 
-  const playVoiceDemo = useCallback(
+  const playVoice = useCallback(
     (operator: VoiceOperator, voice: VoiceLine) => {
+      const audioSource = voiceAudioSources[voice.assetPath];
+
+      if (!audioSource) {
+        return;
+      }
+
       const track: PlayerTrack = {
         id: voice.id,
         title: voice.title || voice.voiceId || voice.id,
         artist: operator.name,
         text: voice.text,
         assetPath: voice.assetPath,
-        isDemoAudio: true,
+        isDemoAudio: false,
       };
 
       player.pause();
-      player.replace(testAudioSource);
+      player.replace(audioSource);
       setCurrentTrack(track);
       setLockScreenTrack(player, track);
       player.play();
@@ -124,7 +138,7 @@ export function AudioPlayerProvider({ children }: PropsWithChildren) {
 
   return (
     <AudioPlayerContext.Provider
-      value={{ currentTrack, pause, play, playVoiceDemo, player, reset, status }}>
+      value={{ currentTrack, pause, play, playVoice, player, reset, status }}>
       {children}
     </AudioPlayerContext.Provider>
   );

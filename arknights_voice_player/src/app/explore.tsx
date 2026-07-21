@@ -14,7 +14,7 @@ import { ThemedView } from '@/components/themed-view';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import type { VoiceLine, VoiceOperator } from '@/models/voice-line';
-import { useAppAudioPlayer } from '@/player/audio-player-provider';
+import { hasVoiceAudio, useAppAudioPlayer } from '@/player/audio-player-provider';
 import {
   getVoiceCatalog,
   searchVoiceLines,
@@ -51,8 +51,9 @@ function VoiceCard({
   voice: VoiceLine;
 }) {
   const theme = useTheme();
-  const { playVoiceDemo } = useAppAudioPlayer();
+  const { playVoice } = useAppAudioPlayer();
   const title = voice.title || voice.voiceId || voice.id;
+  const canPlay = hasVoiceAudio(voice);
 
   return (
     <ThemedView type="backgroundElement" style={styles.voiceCard}>
@@ -69,17 +70,19 @@ function VoiceCard({
         {voice.assetPath}
       </ThemedText>
       <Pressable
-        accessibilityHint="実際のゲーム音声ではなく、動作確認用音声を再生します"
+        accessibilityHint={canPlay ? 'ローカルに保存した英語ボイスを再生します' : undefined}
         accessibilityRole="button"
-        onPress={() => playVoiceDemo(operator, voice)}
+        accessibilityState={{ disabled: !canPlay }}
+        disabled={!canPlay}
+        onPress={() => playVoice(operator, voice)}
         style={({ pressed }) => [
           styles.demoButton,
           {
             backgroundColor: theme.backgroundSelected,
-            opacity: pressed ? 0.7 : 1,
+            opacity: !canPlay ? 0.45 : pressed ? 0.7 : 1,
           },
         ]}>
-        <ThemedText type="smallBold">テスト音声で再生</ThemedText>
+        <ThemedText type="smallBold">{canPlay ? '英語ボイスを再生' : '音声未配置'}</ThemedText>
       </Pressable>
     </ThemedView>
   );
@@ -144,7 +147,8 @@ export default function VoiceCatalogScreen() {
             </ThemedText>
             <ThemedView type="backgroundElement" style={styles.notice}>
               <ThemedText type="small">
-                実音声は未配置です。「テスト音声で再生」は、選択内容がプレイヤーへ渡ることを確認する機能です。
+                現在はアーミヤの「Appointed as Assistant（CN_001）」だけ再生できます。
+                ほかのボイスは音声ファイルを追加するまで再生できません。
               </ThemedText>
             </ThemedView>
           </SafeAreaView>
