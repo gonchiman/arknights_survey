@@ -49,28 +49,19 @@ function PlayerButton({ disabled = false, label, onPress, primary = false }: Pla
 
 export default function HomeScreen() {
   const theme = useTheme();
-  const { player, status } = useAppAudioPlayer();
+  const { currentTrack, pause, play, reset, status } = useAppAudioPlayer();
 
   const duration = status.duration || 0;
   const progress = duration > 0 ? Math.min(status.currentTime / duration, 1) : 0;
   const canControl = status.isLoaded && !status.error;
 
-  const handlePlayPause = async () => {
+  const handlePlayPause = () => {
     if (status.playing) {
-      player.pause();
+      pause();
       return;
     }
 
-    if (status.didJustFinish || (duration > 0 && status.currentTime >= duration)) {
-      await player.seekTo(0);
-    }
-
-    player.play();
-  };
-
-  const handleReset = async () => {
-    player.pause();
-    await player.seekTo(0);
+    return play();
   };
 
   const playbackState = status.error
@@ -87,21 +78,33 @@ export default function HomeScreen() {
     <ScrollView style={{ backgroundColor: theme.background }} contentContainerStyle={styles.page}>
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.heading}>
-          <ThemedText type="subtitle">Arknights Voice Player</ThemedText>
+          <ThemedText type="subtitle">再生中</ThemedText>
           <ThemedText themeColor="textSecondary">
-            まずはテスト音声1件の再生機能を確認します。
+            ボイス一覧で選択した内容は、このプレイヤーに反映されます。
           </ThemedText>
         </View>
 
         <ThemedView type="backgroundElement" style={styles.playerCard}>
           <View style={styles.trackInformation}>
-            <ThemedText type="smallBold" themeColor="textSecondary">
-              TEST AUDIO
-            </ThemedText>
+            <View style={styles.badgeRow}>
+              <ThemedText type="smallBold" themeColor="textSecondary">
+                {currentTrack.artist}
+              </ThemedText>
+              {currentTrack.isDemoAudio && (
+                <View style={styles.demoBadge}>
+                  <ThemedText type="smallBold" style={styles.demoBadgeText}>
+                    テスト音声
+                  </ThemedText>
+                </View>
+              )}
+            </View>
             <ThemedText type="subtitle" style={styles.trackTitle}>
-              Audio playback test
+              {currentTrack.title}
             </ThemedText>
-            <ThemedText themeColor="textSecondary">assets/audio/test.wav</ThemedText>
+            <ThemedText>{currentTrack.text}</ThemedText>
+            <ThemedText type="code" themeColor="textSecondary">
+              {currentTrack.assetPath}
+            </ThemedText>
           </View>
 
           <View style={styles.statusRow}>
@@ -124,7 +127,7 @@ export default function HomeScreen() {
               onPress={handlePlayPause}
               primary
             />
-            <PlayerButton disabled={!canControl} label="先頭に戻る" onPress={handleReset} />
+            <PlayerButton disabled={!canControl} label="先頭に戻る" onPress={reset} />
           </View>
 
           {status.error && (
@@ -135,7 +138,7 @@ export default function HomeScreen() {
         </ThemedView>
 
         <ThemedText type="small" themeColor="textSecondary" style={styles.note}>
-          再生中にExplore画面へ移動しても、プレイヤーはレイアウト側で保持されます。
+          現在は実ボイス未配置のため、一覧から選んだ場合も「Audio playback test.」が再生されます。
         </ThemedText>
       </SafeAreaView>
     </ScrollView>
@@ -164,7 +167,22 @@ const styles = StyleSheet.create({
     gap: Spacing.four,
   },
   trackInformation: {
-    gap: Spacing.one,
+    gap: Spacing.two,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: Spacing.two,
+  },
+  demoBadge: {
+    borderRadius: Spacing.five,
+    paddingHorizontal: Spacing.two,
+    paddingVertical: Spacing.one,
+    backgroundColor: '#FFF0C2',
+  },
+  demoBadgeText: {
+    color: '#714B00',
   },
   trackTitle: {
     fontSize: 28,

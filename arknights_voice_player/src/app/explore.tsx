@@ -1,180 +1,297 @@
-import { Image } from 'expo-image';
-import { SymbolView } from 'expo-symbols';
-import { Platform, Pressable, ScrollView, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useMemo, useState } from 'react';
+import {
+  FlatList,
+  Pressable,
+  StyleSheet,
+  TextInput,
+  View,
+  type ListRenderItemInfo,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ExternalLink } from '@/components/external-link';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Collapsible } from '@/components/ui/collapsible';
-import { WebBadge } from '@/components/web-badge';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import type { VoiceLine, VoiceOperator } from '@/models/voice-line';
+import { useAppAudioPlayer } from '@/player/audio-player-provider';
+import {
+  getVoiceCatalog,
+  searchVoiceLines,
+  searchVoiceOperators,
+} from '@/services/voice-line-repository';
 
-export default function TabTwoScreen() {
-  const safeAreaInsets = useSafeAreaInsets();
-  const insets = {
-    ...safeAreaInsets,
-    bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
-  };
+const catalog = getVoiceCatalog();
+
+function OperatorCard({ operator, onPress }: { operator: VoiceOperator; onPress: () => void }) {
   const theme = useTheme();
 
-  const contentPlatformStyle = Platform.select({
-    android: {
-      paddingTop: insets.top,
-      paddingLeft: insets.left,
-      paddingRight: insets.right,
-      paddingBottom: insets.bottom,
-    },
-    web: {
-      paddingTop: Spacing.six,
-      paddingBottom: Spacing.four,
-    },
-  });
+  return (
+    <Pressable onPress={onPress} style={({ pressed }) => pressed && styles.pressed}>
+      <ThemedView type="backgroundElement" style={styles.operatorCard}>
+        <View style={styles.cardText}>
+          <ThemedText type="smallBold">{operator.name}</ThemedText>
+          <ThemedText type="code" themeColor="textSecondary">
+            {operator.id}
+          </ThemedText>
+        </View>
+        <View style={[styles.countBadge, { backgroundColor: theme.backgroundSelected }]}>
+          <ThemedText type="smallBold">{operator.voices.length}</ThemedText>
+        </View>
+      </ThemedView>
+    </Pressable>
+  );
+}
+
+function VoiceCard({
+  operator,
+  voice,
+}: {
+  operator: VoiceOperator;
+  voice: VoiceLine;
+}) {
+  const theme = useTheme();
+  const { playVoiceDemo } = useAppAudioPlayer();
+  const title = voice.title || voice.voiceId || voice.id;
 
   return (
-    <ScrollView
-      style={[styles.scrollView, { backgroundColor: theme.background }]}
-      contentInset={insets}
-      contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}>
-      <ThemedView style={styles.container}>
-        <ThemedView style={styles.titleContainer}>
-          <ThemedText type="subtitle">Explore</ThemedText>
-          <ThemedText style={styles.centerText} themeColor="textSecondary">
-            This starter app includes example{'\n'}code to help you get started.
-          </ThemedText>
+    <ThemedView type="backgroundElement" style={styles.voiceCard}>
+      <View style={styles.voiceHeading}>
+        <ThemedText type="smallBold" style={styles.voiceTitle}>
+          {title}
+        </ThemedText>
+        <ThemedText type="code" themeColor="textSecondary">
+          {voice.voiceId}
+        </ThemedText>
+      </View>
+      <ThemedText>{voice.text}</ThemedText>
+      <ThemedText type="code" themeColor="textSecondary">
+        {voice.assetPath}
+      </ThemedText>
+      <Pressable
+        accessibilityHint="実際のゲーム音声ではなく、動作確認用音声を再生します"
+        accessibilityRole="button"
+        onPress={() => playVoiceDemo(operator, voice)}
+        style={({ pressed }) => [
+          styles.demoButton,
+          {
+            backgroundColor: theme.backgroundSelected,
+            opacity: pressed ? 0.7 : 1,
+          },
+        ]}>
+        <ThemedText type="smallBold">テスト音声で再生</ThemedText>
+      </Pressable>
+    </ThemedView>
+  );
+}
 
-          <ExternalLink href="https://docs.expo.dev" asChild>
-            <Pressable style={({ pressed }) => pressed && styles.pressed}>
-              <ThemedView type="backgroundElement" style={styles.linkButton}>
-                <ThemedText type="link">Expo documentation</ThemedText>
-                <SymbolView
-                  tintColor={theme.text}
-                  name={{ ios: 'arrow.up.right.square', android: 'link', web: 'link' }}
-                  size={12}
-                />
-              </ThemedView>
+export default function VoiceCatalogScreen() {
+  const theme = useTheme();
+  const [query, setQuery] = useState('');
+  const [voiceQuery, setVoiceQuery] = useState('');
+  const [selectedOperator, setSelectedOperator] = useState<VoiceOperator | null>(null);
+  const filteredOperators = useMemo(() => searchVoiceOperators(query), [query]);
+  const filteredVoices = useMemo(
+    () => (selectedOperator ? searchVoiceLines(selectedOperator, voiceQuery) : []),
+    [selectedOperator, voiceQuery]
+  );
+
+  if (selectedOperator) {
+    return (
+      <FlatList
+        style={{ backgroundColor: theme.background }}
+        contentContainerStyle={styles.listContent}
+        data={filteredVoices}
+        keyExtractor={(voice) => voice.id}
+        renderItem={({ item }) => <VoiceCard operator={selectedOperator} voice={item} />}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        ListHeaderComponent={
+          <SafeAreaView style={styles.detailHeader}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => setSelectedOperator(null)}
+              style={({ pressed }) => pressed && styles.pressed}>
+              <ThemedText type="linkPrimary">← オペレーター一覧</ThemedText>
             </Pressable>
-          </ExternalLink>
-        </ThemedView>
-
-        <ThemedView style={styles.sectionsWrapper}>
-          <Collapsible title="File-based routing">
-            <ThemedText type="small">
-              This app has two screens: <ThemedText type="code">src/app/index.tsx</ThemedText> and{' '}
-              <ThemedText type="code">src/app/explore.tsx</ThemedText>
-            </ThemedText>
-            <ThemedText type="small">
-              The layout file in <ThemedText type="code">src/app/_layout.tsx</ThemedText> sets up
-              the tab navigator.
-            </ThemedText>
-            <ExternalLink href="https://docs.expo.dev/router/introduction">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
-
-          <Collapsible title="Android, iOS, and web support">
-            <ThemedView type="backgroundElement" style={styles.collapsibleContent}>
-              <ThemedText type="small">
-                You can open this project on Android, iOS, and the web. To open the web version,
-                press <ThemedText type="smallBold">w</ThemedText> in the terminal running this
-                project.
+            <View style={styles.heading}>
+              <ThemedText type="subtitle">{selectedOperator.name}</ThemedText>
+              <ThemedText type="code" themeColor="textSecondary">
+                {selectedOperator.id}
               </ThemedText>
-              <Image
-                source={require('@/assets/images/tutorial-web.png')}
-                style={styles.imageTutorial}
-              />
+              <ThemedText themeColor="textSecondary">
+                {selectedOperator.voices.length}件の英語ボイステキスト
+              </ThemedText>
+            </View>
+            <TextInput
+              accessibilityLabel="ボイスを検索"
+              autoCapitalize="none"
+              autoCorrect={false}
+              onChangeText={setVoiceQuery}
+              placeholder="タイトル・本文・IDで検索"
+              placeholderTextColor={theme.textSecondary}
+              returnKeyType="search"
+              style={[
+                styles.searchInput,
+                {
+                  backgroundColor: theme.backgroundElement,
+                  color: theme.text,
+                },
+              ]}
+              value={voiceQuery}
+            />
+            <ThemedText type="small" themeColor="textSecondary">
+              {filteredVoices.length}件を表示
+            </ThemedText>
+            <ThemedView type="backgroundElement" style={styles.notice}>
+              <ThemedText type="small">
+                実音声は未配置です。「テスト音声で再生」は、選択内容がプレイヤーへ渡ることを確認する機能です。
+              </ThemedText>
             </ThemedView>
-          </Collapsible>
+          </SafeAreaView>
+        }
+      />
+    );
+  }
 
-          <Collapsible title="Images">
-            <ThemedText type="small">
-              For static images, you can use the <ThemedText type="code">@2x</ThemedText> and{' '}
-              <ThemedText type="code">@3x</ThemedText> suffixes to provide files for different
-              screen densities.
-            </ThemedText>
-            <Image source={require('@/assets/images/react-logo.png')} style={styles.imageReact} />
-            <ExternalLink href="https://reactnative.dev/docs/images">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
+  const renderOperator = ({ item }: ListRenderItemInfo<VoiceOperator>) => (
+    <OperatorCard
+      operator={item}
+      onPress={() => {
+        setVoiceQuery('');
+        setSelectedOperator(item);
+      }}
+    />
+  );
 
-          <Collapsible title="Light and dark mode components">
-            <ThemedText type="small">
-              This template has light and dark mode support. The{' '}
-              <ThemedText type="code">useColorScheme()</ThemedText> hook lets you inspect what the
-              user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
+  return (
+    <FlatList
+      style={{ backgroundColor: theme.background }}
+      contentContainerStyle={styles.listContent}
+      data={filteredOperators}
+      keyExtractor={(operator) => operator.id}
+      renderItem={renderOperator}
+      ItemSeparatorComponent={() => <View style={styles.separator} />}
+      keyboardShouldPersistTaps="handled"
+      ListHeaderComponent={
+        <SafeAreaView style={styles.catalogHeader}>
+          <View style={styles.heading}>
+            <ThemedText type="subtitle">ボイス一覧</ThemedText>
+            <ThemedText themeColor="textSecondary">
+              {catalog.operatorCount}オペレーター・{catalog.voiceCount.toLocaleString()}件
             </ThemedText>
-            <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
-
-          <Collapsible title="Animations">
-            <ThemedText type="small">
-              This template includes an example of an animated component. The{' '}
-              <ThemedText type="code">src/components/ui/collapsible.tsx</ThemedText> component uses
-              the powerful <ThemedText type="code">react-native-reanimated</ThemedText> library to
-              animate opening this hint.
-            </ThemedText>
-          </Collapsible>
+          </View>
+          <TextInput
+            accessibilityLabel="オペレーターを検索"
+            autoCapitalize="none"
+            autoCorrect={false}
+            onChangeText={setQuery}
+            placeholder="名前またはIDで検索"
+            placeholderTextColor={theme.textSecondary}
+            returnKeyType="search"
+            style={[
+              styles.searchInput,
+              {
+                backgroundColor: theme.backgroundElement,
+                color: theme.text,
+              },
+            ]}
+            value={query}
+          />
+          <ThemedText type="small" themeColor="textSecondary">
+            {filteredOperators.length}件を表示
+          </ThemedText>
+        </SafeAreaView>
+      }
+      ListEmptyComponent={
+        <ThemedView type="backgroundElement" style={styles.emptyState}>
+          <ThemedText>条件に一致するオペレーターはありません。</ThemedText>
         </ThemedView>
-        {Platform.OS === 'web' && <WebBadge />}
-      </ThemedView>
-    </ScrollView>
+      }
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  scrollView: {
+  listContent: {
+    width: '100%',
+    maxWidth: MaxContentWidth,
+    alignSelf: 'center',
+    paddingHorizontal: Spacing.four,
+    paddingTop: Spacing.six,
+    paddingBottom: BottomTabInset + Spacing.six,
+  },
+  catalogHeader: {
+    gap: Spacing.three,
+    marginBottom: Spacing.four,
+  },
+  detailHeader: {
+    gap: Spacing.three,
+    marginBottom: Spacing.four,
+  },
+  heading: {
+    gap: Spacing.one,
+  },
+  searchInput: {
+    minHeight: 48,
+    borderRadius: Spacing.three,
+    paddingHorizontal: Spacing.three,
+    fontSize: 16,
+  },
+  operatorCard: {
+    minHeight: 72,
+    borderRadius: Spacing.three,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.three,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three,
+  },
+  cardText: {
+    flex: 1,
+    gap: Spacing.one,
+  },
+  countBadge: {
+    minWidth: 44,
+    minHeight: 36,
+    borderRadius: Spacing.five,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.two,
+  },
+  voiceCard: {
+    borderRadius: Spacing.three,
+    padding: Spacing.three,
+    gap: Spacing.three,
+  },
+  voiceHeading: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: Spacing.three,
+  },
+  voiceTitle: {
     flex: 1,
   },
-  contentContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  container: {
-    maxWidth: MaxContentWidth,
-    flexGrow: 1,
-  },
-  titleContainer: {
-    gap: Spacing.three,
+  demoButton: {
+    minHeight: 44,
+    borderRadius: Spacing.three,
     alignItems: 'center',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.six,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.three,
   },
-  centerText: {
-    textAlign: 'center',
+  notice: {
+    borderRadius: Spacing.three,
+    padding: Spacing.three,
+  },
+  emptyState: {
+    borderRadius: Spacing.three,
+    padding: Spacing.four,
+    alignItems: 'center',
+  },
+  separator: {
+    height: Spacing.two,
   },
   pressed: {
     opacity: 0.7,
-  },
-  linkButton: {
-    flexDirection: 'row',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.two,
-    borderRadius: Spacing.five,
-    justifyContent: 'center',
-    gap: Spacing.one,
-    alignItems: 'center',
-  },
-  sectionsWrapper: {
-    gap: Spacing.five,
-    paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.three,
-  },
-  collapsibleContent: {
-    alignItems: 'center',
-  },
-  imageTutorial: {
-    width: '100%',
-    aspectRatio: 296 / 171,
-    borderRadius: Spacing.three,
-    marginTop: Spacing.two,
-  },
-  imageReact: {
-    width: 100,
-    height: 100,
-    alignSelf: 'center',
   },
 });
