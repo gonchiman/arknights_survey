@@ -5,7 +5,15 @@ import { fileURLToPath } from 'node:url';
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(scriptDirectory, '..');
+const repositoryRoot = path.resolve(projectRoot, '..');
 const catalogPath = path.join(projectRoot, 'assets', 'data', 'voice_catalog.json');
+const operatorsPath = path.join(
+  repositoryRoot,
+  'arknights_damage_calculator',
+  'data',
+  'processed',
+  'operators.json'
+);
 const outputRoot = path.join(projectRoot, 'public', 'audio', 'voice_en');
 const upstreamBaseUrl =
   'https://raw.githubusercontent.com/PseudoMon/arknights-audio/global-server-voices/voice_en';
@@ -15,26 +23,110 @@ function printUsage() {
   console.log('Usage: npm.cmd run download:operator-audio -- <operator name or ID>');
   console.log('Example: npm.cmd run download:operator-audio -- エクシア');
   console.log('Example: npm.cmd run download:operator-audio -- char_103_angel');
+  console.log('Usage: npm.cmd run download:rarity-audio -- <rarity>');
+  console.log('Example: npm.cmd run download:rarity-audio -- 6');
+  console.log('Add --dry-run to show the target count without downloading files.');
 }
 
-const query = process.argv.slice(2).join(' ').trim();
+const args = process.argv.slice(2);
+const dryRunIndex = args.indexOf('--dry-run');
+const dryRun = dryRunIndex !== -1;
+
+if (dryRun) {
+  args.splice(dryRunIndex, 1);
+}
+
+const query = args.join(' ').trim();
 
 if (!query || query === '--help' || query === '-h') {
   printUsage();
   process.exitCode = query ? 0 : 1;
 } else {
   try {
-    await downloadOperatorAudio(query);
+    if (args[0] === '--rarity') {
+      if (args.length !== 2) {
+        throw new Error('レアリティを1つ指定してください。例: --rarity 6');
+      }
+
+      await downloadRarityAudio(args[1], dryRun);
+    } else {
+      await downloadOperatorAudio(query, dryRun);
+    }
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
     process.exitCode = 1;
   }
 }
 
-async function downloadOperatorAudio(operatorQuery) {
-  const catalog = JSON.parse(await readFile(catalogPath, 'utf8'));
+async function readJson(filePath) {
+  return JSON.parse(await readFile(filePath, 'utf8'));
+}
+
+async function downloadOperatorAudio(operatorQuery, isDryRun) {
+  const catalog = await readJson(catalogPath);
   const operator = resolveOperator(catalog.operators, operatorQuery);
-  const assetPaths = [...new Set(operator.voices.map((voice) => voice.assetPath))].sort();
+  const assetPaths = getUniqueAssetPaths([operator]);
+
+  await downloadAssets(`${operator.name} (${operator.id})`, assetPaths, isDryRun);
+}
+
+async function downloadRarityAudio(rarityValue, isDryRun) {
+  const rarity = Number(rarityValue);
+
+  if (!Number.isInteger(rarity) || rarity < 1 || rarity > 6) {
+    throw new Error('レアリティは1から6の整数で指定してください。');
+  }
+
+  const [catalog, operatorMetadata] = await Promise.all([
+    readJson(catalogPath),
+    readJson(operatorsPath),
+  ]);
+
+  if (!Array.isArray(operatorMetadata)) {
+    throw new Error('operators.json must contain an array.');
+  }
+
+  const rarityId = `TIER_${rarity}`;
+  const operatorIds = new Set(
+    operatorMetadata
+      .filter((operator) => operator.rarity === rarityId)
+      .map((operator) => operator.id)
+      .filter((id) => typeof id === 'string')
+  );
+  const operators = catalog.operators.filter((operator) => operatorIds.has(operator.id));
+
+  if (operators.length === 0) {
+    throw new Error(`星${rarity}のボイス対象オペレーターが見つかりません。`);
+  }
+
+  const assetPaths = getUniqueAssetPaths(operators);
+  await downloadAssets(
+    `星${rarity}オペレーター${operators.length}人`,
+    assetPaths,
+    isDryRun
+  );
+}
+
+function getUniqueAssetPaths(operators) {
+  return [
+    ...new Set(
+      operators.flatMap((operator) =>
+        operator.voices
+          .map((voice) => voice.assetPath)
+          .filter((assetPath) => typeof assetPath === 'string' && assetPath.length > 0)
+      )
+    ),
+  ].sort();
+}
+
+async function downloadAssets(label, assetPaths, isDryRun) {
+  console.log(`${label}: ${assetPaths.length}件を確認します。`);
+
+  if (isDryRun) {
+    console.log('dry-runのため、音声はダウンロードしません。');
+    return;
+  }
+
   const results = [];
   let nextIndex = 0;
 
@@ -55,7 +147,6 @@ async function downloadOperatorAudio(operatorQuery) {
     }
   }
 
-  console.log(`${operator.name} (${operator.id}): ${assetPaths.length}件を確認します。`);
   await Promise.all(Array.from({ length: concurrency }, () => worker()));
   await writeManifest();
 

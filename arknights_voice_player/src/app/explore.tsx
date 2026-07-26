@@ -108,7 +108,7 @@ function AudioLibraryNotice({
       message = `ローカルに保存した英語ボイス${availableVoiceCount}件を再生できます。保存されていない項目は「音声未配置」と表示されます。`;
       break;
     case 'missing':
-      message = '音声がまだありません。npm.cmd run download:operator-audio -- <名前またはID> を実行してから、ページを再読み込みしてください。';
+      message = '音声がまだありません。1人ずつ取得する場合は npm.cmd run download:operator-audio -- <名前またはID>、星6全員なら npm.cmd run download:rarity-audio -- 6 を実行してから、ページを再読み込みしてください。';
       break;
     case 'unsupported':
       message = '現在のローカル音声読み込みはWeb版に対応しています。ネイティブ版の端末キャッシュ対応は次の段階で実装します。';

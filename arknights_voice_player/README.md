@@ -9,6 +9,7 @@
 - オペレーター名・ID検索
 - ボイスタイトル・本文・ID検索
 - 名前またはIDを指定して、任意のオペレーターの英語音声を取得
+- レアリティを指定して、該当オペレーター全員の英語音声を一括取得
 - ダウンロード済みの英語音声をボイスごとに再生
 - バックグラウンド再生とロック画面情報表示のネイティブ設定
 
@@ -22,6 +23,18 @@ npm.cmd run download:operator-audio -- エクシア
 
 ```powershell
 npm.cmd run download:operator-audio -- char_103_angel
+```
+
+星6オペレーター全員の音声は、次のコマンドで一括取得できます。
+
+```powershell
+npm.cmd run download:rarity-audio -- 6
+```
+
+対象件数だけを確認し、音声をまだ取得しない場合は`--dry-run`を付けます。
+
+```powershell
+npm.cmd run download:rarity-audio -- 6 --dry-run
 ```
 
 アーミヤ用の従来のコマンドも引き続き使用できます。
@@ -38,7 +51,7 @@ npm.cmd run download:amiya-audio
 
 ```powershell
 npm.cmd install
-npm.cmd run download:operator-audio -- エクシア
+npm.cmd run download:rarity-audio -- 6
 npm.cmd run web
 ```
 
