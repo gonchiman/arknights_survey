@@ -105,10 +105,10 @@ function AudioLibraryNotice({
       message = 'ローカル音声を確認しています。';
       break;
     case 'ready':
-      message = `アーミヤの英語ボイス${availableVoiceCount}件を再生できます。音声が配布されていない項目だけ「音声未配置」と表示されます。`;
+      message = `ローカルに保存した英語ボイス${availableVoiceCount}件を再生できます。保存されていない項目は「音声未配置」と表示されます。`;
       break;
     case 'missing':
-      message = '音声がまだありません。npm.cmd run download:amiya-audio を実行してから、ページを再読み込みしてください。';
+      message = '音声がまだありません。npm.cmd run download:operator-audio -- <名前またはID> を実行してから、ページを再読み込みしてください。';
       break;
     case 'unsupported':
       message = '現在のローカル音声読み込みはWeb版に対応しています。ネイティブ版の端末キャッシュ対応は次の段階で実装します。';

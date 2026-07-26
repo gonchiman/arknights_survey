@@ -37,7 +37,8 @@
   "scripts": {
     "start": "expo start",
     "build:voice-data": "node ./scripts/build-voice-catalog.mjs",
-    "download:amiya-audio": "node ./scripts/download-amiya-audio.mjs",
+    "download:operator-audio": "node ./scripts/download-operator-audio.mjs",
+    "download:amiya-audio": "node ./scripts/download-operator-audio.mjs char_002_amiya",
     "typecheck": "tsc --noEmit",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo start --android",

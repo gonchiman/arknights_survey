@@ -138,7 +138,7 @@ export default function HomeScreen() {
         </ThemedView>
 
         <ThemedText type="small" themeColor="textSecondary" style={styles.note}>
-          アーミヤの実音声は、「ボイス一覧」から選んで再生できます。
+          ダウンロード済みの実音声は、「ボイス一覧」から選んで再生できます。
         </ThemedText>
       </SafeAreaView>
     </ScrollView>
