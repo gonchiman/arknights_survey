@@ -25,6 +25,7 @@ import {
 } from '@/services/voice-line-repository';
 
 const catalog = getVoiceCatalog();
+const rarityOptions = [null, 6, 5, 4, 3, 2, 1] as const;
 
 function OperatorCard({ operator, onPress }: { operator: VoiceOperator; onPress: () => void }) {
   const theme = useTheme();
@@ -38,11 +39,60 @@ function OperatorCard({ operator, onPress }: { operator: VoiceOperator; onPress:
             {operator.id}
           </ThemedText>
         </View>
-        <View style={[styles.countBadge, { backgroundColor: theme.backgroundSelected }]}>
-          <ThemedText type="smallBold">{operator.voices.length}</ThemedText>
+        <View style={styles.cardBadges}>
+          <View style={[styles.rarityBadge, { backgroundColor: theme.backgroundSelected }]}>
+            <ThemedText type="smallBold">
+              {operator.rarity === null ? '不明' : `★${operator.rarity}`}
+            </ThemedText>
+          </View>
+          <View style={[styles.countBadge, { backgroundColor: theme.backgroundSelected }]}>
+            <ThemedText type="smallBold">{operator.voices.length}件</ThemedText>
+          </View>
         </View>
       </ThemedView>
     </Pressable>
+  );
+}
+
+function RarityFilter({
+  onSelect,
+  selectedRarity,
+}: {
+  onSelect: (rarity: number | null) => void;
+  selectedRarity: number | null;
+}) {
+  const theme = useTheme();
+
+  return (
+    <View style={styles.filterSection}>
+      <ThemedText type="smallBold">レアリティ</ThemedText>
+      <View style={styles.rarityOptions}>
+        {rarityOptions.map((rarity) => {
+          const isSelected = rarity === selectedRarity;
+          const label = rarity === null ? 'すべて' : `★${rarity}`;
+
+          return (
+            <Pressable
+              accessibilityLabel={`レアリティ ${label}`}
+              accessibilityRole="button"
+              accessibilityState={{ selected: isSelected }}
+              key={label}
+              onPress={() => onSelect(rarity)}
+              style={({ pressed }) => [
+                styles.rarityOption,
+                {
+                  backgroundColor: isSelected ? '#208AEF' : theme.backgroundElement,
+                  opacity: pressed ? 0.7 : 1,
+                },
+              ]}>
+              <ThemedText type="smallBold" style={isSelected && styles.selectedRarityText}>
+                {label}
+              </ThemedText>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
   );
 }
 
@@ -127,8 +177,12 @@ export default function VoiceCatalogScreen() {
   const { availableVoiceCount, voiceAudioLibraryStatus } = useAppAudioPlayer();
   const [query, setQuery] = useState('');
   const [voiceQuery, setVoiceQuery] = useState('');
+  const [selectedRarity, setSelectedRarity] = useState<number | null>(6);
   const [selectedOperator, setSelectedOperator] = useState<VoiceOperator | null>(null);
-  const filteredOperators = useMemo(() => searchVoiceOperators(query), [query]);
+  const filteredOperators = useMemo(
+    () => searchVoiceOperators(query, selectedRarity),
+    [query, selectedRarity]
+  );
   const filteredVoices = useMemo(
     () => (selectedOperator ? searchVoiceLines(selectedOperator, voiceQuery) : []),
     [selectedOperator, voiceQuery]
@@ -234,6 +288,7 @@ export default function VoiceCatalogScreen() {
             ]}
             value={query}
           />
+          <RarityFilter onSelect={setSelectedRarity} selectedRarity={selectedRarity} />
           <ThemedText type="small" themeColor="textSecondary">
             {filteredOperators.length}件を表示
           </ThemedText>
@@ -274,6 +329,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     fontSize: 16,
   },
+  filterSection: {
+    gap: Spacing.two,
+  },
+  rarityOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
+  },
+  rarityOption: {
+    minWidth: 56,
+    minHeight: 40,
+    borderRadius: Spacing.five,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.three,
+  },
+  selectedRarityText: {
+    color: '#FFFFFF',
+  },
   operatorCard: {
     minHeight: 72,
     borderRadius: Spacing.three,
@@ -287,8 +361,22 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: Spacing.one,
   },
-  countBadge: {
+  cardBadges: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    gap: Spacing.two,
+  },
+  rarityBadge: {
     minWidth: 44,
+    minHeight: 36,
+    borderRadius: Spacing.five,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.two,
+  },
+  countBadge: {
+    minWidth: 56,
     minHeight: 36,
     borderRadius: Spacing.five,
     alignItems: 'center',

@@ -13,6 +13,7 @@ const operatorsPath = resolve(
   'arknights_damage_calculator/data/processed/operators.json'
 );
 const outputPath = resolve(projectRoot, 'assets/data/voice_catalog.json');
+const raritiesOutputPath = resolve(projectRoot, 'assets/data/operator_rarities.json');
 
 async function readJson(path) {
   return JSON.parse(await readFile(path, 'utf8'));
@@ -26,6 +27,16 @@ function requireString(value, field, recordId) {
   return value;
 }
 
+function parseRarity(value, operatorId) {
+  const match = typeof value === 'string' ? /^TIER_([1-6])$/.exec(value) : null;
+
+  if (!match) {
+    throw new Error(`${operatorId}: rarity must be TIER_1 through TIER_6`);
+  }
+
+  return Number(match[1]);
+}
+
 function buildCatalog(voiceLines, operators) {
   if (!Array.isArray(voiceLines)) {
     throw new Error('voice_lines.json must contain an array');
@@ -35,10 +46,16 @@ function buildCatalog(voiceLines, operators) {
     throw new Error('operators.json must contain an array');
   }
 
-  const operatorNames = new Map(
+  const operatorMetadata = new Map(
     operators
       .filter((operator) => typeof operator.id === 'string' && typeof operator.name === 'string')
-      .map((operator) => [operator.id, operator.name])
+      .map((operator) => [
+        operator.id,
+        {
+          name: operator.name,
+          rarity: parseRarity(operator.rarity, operator.id),
+        },
+      ])
   );
   const groupedVoices = new Map();
   const voiceIds = new Set();
@@ -68,17 +85,20 @@ function buildCatalog(voiceLines, operators) {
   }
 
   const missingOperatorNames = [];
+  const operatorRarities = {};
   const catalogOperators = [...groupedVoices.entries()].map(([id, voices]) => {
-    const name = operatorNames.get(id);
-    if (!name) {
+    const metadata = operatorMetadata.get(id);
+    if (!metadata) {
       missingOperatorNames.push(id);
+    } else {
+      operatorRarities[id] = metadata.rarity;
     }
 
     voices.sort((left, right) => left.index - right.index || left.id.localeCompare(right.id));
 
     return {
       id,
-      name: name ?? id,
+      name: metadata?.name ?? id,
       voices,
     };
   });
@@ -93,6 +113,7 @@ function buildCatalog(voiceLines, operators) {
       voiceCount: voiceLines.length,
       operators: catalogOperators,
     },
+    operatorRarities,
     missingOperatorNames,
   };
 }
@@ -102,12 +123,16 @@ async function main() {
     readJson(voiceLinesPath),
     readJson(operatorsPath),
   ]);
-  const { catalog, missingOperatorNames } = buildCatalog(voiceLines, operators);
+  const { catalog, operatorRarities, missingOperatorNames } = buildCatalog(voiceLines, operators);
 
   await mkdir(dirname(outputPath), { recursive: true });
-  await writeFile(outputPath, `${JSON.stringify(catalog)}\n`, 'utf8');
+  await Promise.all([
+    writeFile(outputPath, `${JSON.stringify(catalog)}\n`, 'utf8'),
+    writeFile(raritiesOutputPath, `${JSON.stringify(operatorRarities)}\n`, 'utf8'),
+  ]);
 
   console.log(`${catalog.operatorCount} operators written to ${outputPath}`);
+  console.log(`${Object.keys(operatorRarities).length} rarities written to ${raritiesOutputPath}`);
   console.log(`${catalog.voiceCount} voice lines included`);
   console.log(`${missingOperatorNames.length} operator names missing`);
 

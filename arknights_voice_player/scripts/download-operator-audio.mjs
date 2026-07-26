@@ -5,15 +5,8 @@ import { fileURLToPath } from 'node:url';
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(scriptDirectory, '..');
-const repositoryRoot = path.resolve(projectRoot, '..');
 const catalogPath = path.join(projectRoot, 'assets', 'data', 'voice_catalog.json');
-const operatorsPath = path.join(
-  repositoryRoot,
-  'arknights_damage_calculator',
-  'data',
-  'processed',
-  'operators.json'
-);
+const raritiesPath = path.join(projectRoot, 'assets', 'data', 'operator_rarities.json');
 const outputRoot = path.join(projectRoot, 'public', 'audio', 'voice_en');
 const upstreamBaseUrl =
   'https://raw.githubusercontent.com/PseudoMon/arknights-audio/global-server-voices/voice_en';
@@ -77,23 +70,13 @@ async function downloadRarityAudio(rarityValue, isDryRun) {
     throw new Error('レアリティは1から6の整数で指定してください。');
   }
 
-  const [catalog, operatorMetadata] = await Promise.all([
+  const [catalog, operatorRarities] = await Promise.all([
     readJson(catalogPath),
-    readJson(operatorsPath),
+    readJson(raritiesPath),
   ]);
-
-  if (!Array.isArray(operatorMetadata)) {
-    throw new Error('operators.json must contain an array.');
-  }
-
-  const rarityId = `TIER_${rarity}`;
-  const operatorIds = new Set(
-    operatorMetadata
-      .filter((operator) => operator.rarity === rarityId)
-      .map((operator) => operator.id)
-      .filter((id) => typeof id === 'string')
+  const operators = catalog.operators.filter(
+    (operator) => operatorRarities[operator.id] === rarity
   );
-  const operators = catalog.operators.filter((operator) => operatorIds.has(operator.id));
 
   if (operators.length === 0) {
     throw new Error(`星${rarity}のボイス対象オペレーターが見つかりません。`);

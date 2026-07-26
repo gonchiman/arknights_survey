@@ -11,6 +11,7 @@ export type VoiceLine = {
 export type VoiceOperator = {
   id: string;
   name: string;
+  rarity: number | null;
   voices: VoiceLine[];
 };
 
