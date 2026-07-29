@@ -49,7 +49,20 @@ function PlayerButton({ disabled = false, label, onPress, primary = false }: Pla
 
 export default function HomeScreen() {
   const theme = useTheme();
-  const { currentTrack, pause, play, reset, status } = useAppAudioPlayer();
+  const {
+    canGoNext,
+    canGoPrevious,
+    currentQueueName,
+    currentTrack,
+    next,
+    pause,
+    play,
+    previous,
+    queueLength,
+    queuePosition,
+    reset,
+    status,
+  } = useAppAudioPlayer();
 
   const duration = status.duration || 0;
   const progress = duration > 0 ? Math.min(status.currentTime / duration, 1) : 0;
@@ -98,6 +111,9 @@ export default function HomeScreen() {
                 </View>
               )}
             </View>
+            <ThemedText type="small" themeColor="textSecondary">
+              {currentQueueName}・{queuePosition} / {queueLength}
+            </ThemedText>
             <ThemedText type="subtitle" style={styles.trackTitle}>
               {currentTrack.title}
             </ThemedText>
@@ -121,12 +137,14 @@ export default function HomeScreen() {
           </View>
 
           <View style={styles.controls}>
+            <PlayerButton disabled={!canGoPrevious} label="前へ" onPress={previous} />
             <PlayerButton
               disabled={!canControl}
               label={status.playing ? '一時停止' : '再生'}
               onPress={handlePlayPause}
               primary
             />
+            <PlayerButton disabled={!canGoNext} label="次へ" onPress={next} />
             <PlayerButton disabled={!canControl} label="先頭に戻る" onPress={reset} />
           </View>
 

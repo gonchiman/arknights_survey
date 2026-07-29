@@ -13,6 +13,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import { Platform } from 'react-native';
@@ -43,6 +44,11 @@ export type PlayerTrack = {
   isDemoAudio: boolean;
 };
 
+export type PlayableVoice = {
+  operator: VoiceOperator;
+  voice: VoiceLine;
+};
+
 const initialTrack: PlayerTrack = {
   id: 'audio-playback-test',
   title: 'Audio playback test',
@@ -54,12 +60,19 @@ const initialTrack: PlayerTrack = {
 
 type AudioPlayerContextValue = {
   availableVoiceCount: number;
+  canGoNext: boolean;
+  canGoPrevious: boolean;
+  currentQueueName: string;
   currentTrack: PlayerTrack;
   hasVoiceAudio: (voice: VoiceLine) => boolean;
+  next: () => void;
   pause: () => void;
   play: () => Promise<void>;
   playVoice: (operator: VoiceOperator, voice: VoiceLine) => void;
-  player: AudioPlayer;
+  playVoiceQueue: (name: string, entries: PlayableVoice[], startIndex?: number) => boolean;
+  previous: () => void;
+  queueLength: number;
+  queuePosition: number;
   reset: () => Promise<void>;
   status: AudioStatus;
   voiceAudioLibraryStatus: VoiceAudioLibraryStatus;
@@ -79,15 +92,43 @@ function setLockScreenTrack(player: AudioPlayer, track: PlayerTrack) {
   });
 }
 
+function createVoiceTrack(operator: VoiceOperator, voice: VoiceLine): PlayerTrack {
+  return {
+    id: voice.id,
+    title: voice.title || voice.voiceId || voice.id,
+    artist: operator.name,
+    text: voice.text,
+    assetPath: voice.assetPath,
+    isDemoAudio: false,
+  };
+}
+
+function getTrackSource(track: PlayerTrack) {
+  return track.isDemoAudio ? testAudioSource : getWebVoiceAudioSource(track.assetPath);
+}
+
 export function AudioPlayerProvider({ children }: PropsWithChildren) {
   const player = useAudioPlayer(testAudioSource, { updateInterval: 250 });
   const status = useAudioPlayerStatus(player);
+  const [queue, setQueue] = useState<PlayerTrack[]>([initialTrack]);
+  const [queueIndex, setQueueIndex] = useState(0);
+  const [currentQueueName, setCurrentQueueName] = useState('テスト音声');
   const [currentTrack, setCurrentTrack] = useState(initialTrack);
   const [availableVoiceAssets, setAvailableVoiceAssets] = useState<ReadonlySet<string>>(
     () => new Set()
   );
   const [voiceAudioLibraryStatus, setVoiceAudioLibraryStatus] =
     useState<VoiceAudioLibraryStatus>(Platform.OS === 'web' ? 'loading' : 'unsupported');
+  const handledFinishRef = useRef(false);
+  const queueRef = useRef(queue);
+  const queueIndexRef = useRef(queueIndex);
+  const queueNameRef = useRef(currentQueueName);
+
+  useEffect(() => {
+    queueRef.current = queue;
+    queueIndexRef.current = queueIndex;
+    queueNameRef.current = currentQueueName;
+  }, [currentQueueName, queue, queueIndex]);
 
   useEffect(() => {
     if (Platform.OS !== 'web') {
@@ -106,7 +147,9 @@ export function AudioPlayerProvider({ children }: PropsWithChildren) {
       })
       .then((manifest) => {
         const assetPaths = Array.isArray(manifest.assetPaths)
-          ? manifest.assetPaths.filter((assetPath): assetPath is string => typeof assetPath === 'string')
+          ? manifest.assetPaths.filter(
+              (assetPath): assetPath is string => typeof assetPath === 'string'
+            )
           : [];
 
         setAvailableVoiceAssets(new Set(assetPaths));
@@ -141,7 +184,57 @@ export function AudioPlayerProvider({ children }: PropsWithChildren) {
     };
   }, [player]);
 
+  const loadQueueTrack = useCallback(
+    (tracks: PlayerTrack[], index: number, queueName: string) => {
+      const track = tracks[index];
+
+      if (!track) {
+        return;
+      }
+
+      player.pause();
+      player.replace(getTrackSource(track));
+      setQueue(tracks);
+      setQueueIndex(index);
+      setCurrentQueueName(queueName);
+      setCurrentTrack(track);
+      setLockScreenTrack(player, track);
+      player.play();
+    },
+    [player]
+  );
+
+  useEffect(() => {
+    const subscription = player.addListener('playbackStatusUpdate', (nextStatus) => {
+      if (!nextStatus.didJustFinish) {
+        handledFinishRef.current = false;
+        return;
+      }
+
+      if (handledFinishRef.current) {
+        return;
+      }
+
+      handledFinishRef.current = true;
+
+      if (queueIndexRef.current < queueRef.current.length - 1) {
+        loadQueueTrack(
+          queueRef.current,
+          queueIndexRef.current + 1,
+          queueNameRef.current
+        );
+      }
+    });
+
+    return () => subscription.remove();
+  }, [loadQueueTrack, player]);
+
   const play = useCallback(async () => {
+    if (status.didJustFinish && queueIndex < queue.length - 1) {
+      loadQueueTrack(queue, queueIndex + 1, currentQueueName);
+      return;
+    }
+
     const duration = status.duration || 0;
 
     if (status.didJustFinish || (duration > 0 && status.currentTime >= duration)) {
@@ -150,7 +243,17 @@ export function AudioPlayerProvider({ children }: PropsWithChildren) {
 
     setLockScreenTrack(player, currentTrack);
     player.play();
-  }, [currentTrack, player, status.currentTime, status.didJustFinish, status.duration]);
+  }, [
+    currentQueueName,
+    currentTrack,
+    loadQueueTrack,
+    player,
+    queue,
+    queueIndex,
+    status.currentTime,
+    status.didJustFinish,
+    status.duration,
+  ]);
 
   const pause = useCallback(() => {
     player.pause();
@@ -161,56 +264,93 @@ export function AudioPlayerProvider({ children }: PropsWithChildren) {
     await player.seekTo(0);
   }, [player]);
 
+  const next = useCallback(() => {
+    if (queueIndex < queue.length - 1) {
+      loadQueueTrack(queue, queueIndex + 1, currentQueueName);
+    }
+  }, [currentQueueName, loadQueueTrack, queue, queueIndex]);
+
+  const previous = useCallback(() => {
+    if (queueIndex > 0) {
+      loadQueueTrack(queue, queueIndex - 1, currentQueueName);
+    }
+  }, [currentQueueName, loadQueueTrack, queue, queueIndex]);
+
   const hasVoiceAudio = useCallback(
     (voice: VoiceLine) => availableVoiceAssets.has(voice.assetPath),
     [availableVoiceAssets]
   );
 
-  const playVoice = useCallback(
-    (operator: VoiceOperator, voice: VoiceLine) => {
-      if (Platform.OS !== 'web' || !availableVoiceAssets.has(voice.assetPath)) {
-        return;
+  const playVoiceQueue = useCallback(
+    (name: string, entries: PlayableVoice[], startIndex = 0) => {
+      if (Platform.OS !== 'web') {
+        return false;
       }
 
-      const track: PlayerTrack = {
-        id: voice.id,
-        title: voice.title || voice.voiceId || voice.id,
-        artist: operator.name,
-        text: voice.text,
-        assetPath: voice.assetPath,
-        isDemoAudio: false,
-      };
+      const playableTracks = entries
+        .map((entry, sourceIndex) => ({ entry, sourceIndex }))
+        .filter(({ entry }) => availableVoiceAssets.has(entry.voice.assetPath))
+        .map(({ entry, sourceIndex }) => ({
+          sourceIndex,
+          track: createVoiceTrack(entry.operator, entry.voice),
+        }));
 
-      player.pause();
-      player.replace(getWebVoiceAudioSource(voice.assetPath));
-      setCurrentTrack(track);
-      setLockScreenTrack(player, track);
-      player.play();
+      if (playableTracks.length === 0) {
+        return false;
+      }
+
+      const requestedIndex = playableTracks.findIndex(
+        ({ sourceIndex }) => sourceIndex === startIndex
+      );
+      const targetIndex = requestedIndex >= 0 ? requestedIndex : 0;
+      const tracks = playableTracks.map(({ track }) => track);
+
+      loadQueueTrack(tracks, targetIndex, name);
+      return true;
     },
-    [availableVoiceAssets, player]
+    [availableVoiceAssets, loadQueueTrack]
+  );
+
+  const playVoice = useCallback(
+    (operator: VoiceOperator, voice: VoiceLine) => {
+      playVoiceQueue(operator.name, [{ operator, voice }]);
+    },
+    [playVoiceQueue]
   );
 
   const contextValue = useMemo(
     () => ({
       availableVoiceCount: availableVoiceAssets.size,
+      canGoNext: queueIndex < queue.length - 1,
+      canGoPrevious: queueIndex > 0,
+      currentQueueName,
       currentTrack,
       hasVoiceAudio,
+      next,
       pause,
       play,
       playVoice,
-      player,
+      playVoiceQueue,
+      previous,
+      queueLength: queue.length,
+      queuePosition: queueIndex + 1,
       reset,
       status,
       voiceAudioLibraryStatus,
     }),
     [
       availableVoiceAssets.size,
+      currentQueueName,
       currentTrack,
       hasVoiceAudio,
+      next,
       pause,
       play,
       playVoice,
-      player,
+      playVoiceQueue,
+      previous,
+      queue.length,
+      queueIndex,
       reset,
       status,
       voiceAudioLibraryStatus,

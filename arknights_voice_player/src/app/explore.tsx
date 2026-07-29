@@ -13,11 +13,13 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import type { VoicePlaylist } from '@/models/playlist';
 import type { VoiceLine, VoiceOperator } from '@/models/voice-line';
 import {
   useAppAudioPlayer,
   type VoiceAudioLibraryStatus,
 } from '@/player/audio-player-provider';
+import { usePlaylists } from '@/playlists/playlist-provider';
 import {
   getVoiceCatalog,
   searchVoiceLines,
@@ -156,16 +158,32 @@ function ProfessionFilter({
 }
 
 function VoiceCard({
+  onAddToPlaylist,
   operator,
+  targetPlaylist,
   voice,
 }: {
+  onAddToPlaylist: () => void;
   operator: VoiceOperator;
+  targetPlaylist: VoicePlaylist | null;
   voice: VoiceLine;
 }) {
   const theme = useTheme();
   const { hasVoiceAudio, playVoice } = useAppAudioPlayer();
+  const [lastAddedPlaylistId, setLastAddedPlaylistId] = useState<string | null>(null);
   const title = voice.title || voice.voiceId || voice.id;
   const canPlay = hasVoiceAudio(voice);
+  const canAddToPlaylist = canPlay && targetPlaylist !== null;
+  const wasJustAdded = targetPlaylist?.id === lastAddedPlaylistId;
+
+  const handleAddToPlaylist = () => {
+    if (!targetPlaylist) {
+      return;
+    }
+
+    onAddToPlaylist();
+    setLastAddedPlaylistId(targetPlaylist.id);
+  };
 
   return (
     <ThemedView type="backgroundElement" style={styles.voiceCard}>
@@ -181,22 +199,97 @@ function VoiceCard({
       <ThemedText type="code" themeColor="textSecondary">
         {voice.assetPath}
       </ThemedText>
-      <Pressable
-        accessibilityHint={canPlay ? 'ローカルに保存した英語ボイスを再生します' : undefined}
-        accessibilityRole="button"
-        accessibilityState={{ disabled: !canPlay }}
-        disabled={!canPlay}
-        onPress={() => playVoice(operator, voice)}
-        style={({ pressed }) => [
-          styles.demoButton,
-          {
-            backgroundColor: theme.backgroundSelected,
-            opacity: !canPlay ? 0.45 : pressed ? 0.7 : 1,
-          },
-        ]}>
-        <ThemedText type="smallBold">{canPlay ? '英語ボイスを再生' : '音声未配置'}</ThemedText>
-      </Pressable>
+      <View style={styles.voiceActions}>
+        <Pressable
+          accessibilityHint={canPlay ? 'ローカルに保存した英語ボイスを再生します' : undefined}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: !canPlay }}
+          disabled={!canPlay}
+          onPress={() => playVoice(operator, voice)}
+          style={({ pressed }) => [
+            styles.voiceButton,
+            {
+              backgroundColor: theme.backgroundSelected,
+              opacity: !canPlay ? 0.45 : pressed ? 0.7 : 1,
+            },
+          ]}>
+          <ThemedText type="smallBold">{canPlay ? '英語ボイスを再生' : '音声未配置'}</ThemedText>
+        </Pressable>
+        <Pressable
+          accessibilityHint={
+            targetPlaylist
+              ? `${targetPlaylist.name}へこのボイスを追加します`
+              : 'プレイリスト画面でプレイリストを作成してください'
+          }
+          accessibilityRole="button"
+          accessibilityState={{ disabled: !canAddToPlaylist }}
+          disabled={!canAddToPlaylist}
+          onPress={handleAddToPlaylist}
+          style={({ pressed }) => [
+            styles.voiceButton,
+            {
+              backgroundColor: wasJustAdded ? '#D9F6DF' : theme.backgroundSelected,
+              opacity: !canAddToPlaylist ? 0.45 : pressed ? 0.7 : 1,
+            },
+          ]}>
+          <ThemedText type="smallBold" style={wasJustAdded && styles.addedText}>
+            {wasJustAdded ? '追加しました' : 'プレイリストに追加'}
+          </ThemedText>
+        </Pressable>
+      </View>
     </ThemedView>
+  );
+}
+
+function PlaylistTargetPicker({
+  onSelect,
+  playlists,
+  selectedPlaylistId,
+}: {
+  onSelect: (playlistId: string) => void;
+  playlists: VoicePlaylist[];
+  selectedPlaylistId: string | null;
+}) {
+  const theme = useTheme();
+
+  if (playlists.length === 0) {
+    return (
+      <ThemedView type="backgroundElement" style={styles.notice}>
+        <ThemedText type="small">
+          ボイスを追加するには、「プレイリスト」画面でプレイリストを作成してください。
+        </ThemedText>
+      </ThemedView>
+    );
+  }
+
+  return (
+    <View style={styles.filterSection}>
+      <ThemedText type="smallBold">追加先プレイリスト</ThemedText>
+      <View style={styles.filterOptions}>
+        {playlists.map((playlist) => {
+          const isSelected = playlist.id === selectedPlaylistId;
+
+          return (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ selected: isSelected }}
+              key={playlist.id}
+              onPress={() => onSelect(playlist.id)}
+              style={({ pressed }) => [
+                styles.filterOption,
+                {
+                  backgroundColor: isSelected ? '#208AEF' : theme.backgroundElement,
+                  opacity: pressed ? 0.7 : 1,
+                },
+              ]}>
+              <ThemedText type="smallBold" style={isSelected && styles.selectedFilterText}>
+                {playlist.name}
+              </ThemedText>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
   );
 }
 
@@ -234,11 +327,15 @@ function AudioLibraryNotice({
 export default function VoiceCatalogScreen() {
   const theme = useTheme();
   const { availableVoiceCount, voiceAudioLibraryStatus } = useAppAudioPlayer();
+  const { addVoiceToPlaylist, playlists } = usePlaylists();
   const [query, setQuery] = useState('');
   const [voiceQuery, setVoiceQuery] = useState('');
   const [selectedRarity, setSelectedRarity] = useState<number | null>(6);
   const [selectedProfession, setSelectedProfession] = useState<string | null>(null);
   const [selectedOperator, setSelectedOperator] = useState<VoiceOperator | null>(null);
+  const [selectedPlaylistId, setSelectedPlaylistId] = useState<string | null>(null);
+  const selectedPlaylist =
+    playlists.find((playlist) => playlist.id === selectedPlaylistId) ?? playlists[0] ?? null;
   const filteredOperators = useMemo(
     () => searchVoiceOperators(query, selectedRarity, selectedProfession),
     [query, selectedProfession, selectedRarity]
@@ -255,7 +352,18 @@ export default function VoiceCatalogScreen() {
         contentContainerStyle={styles.listContent}
         data={filteredVoices}
         keyExtractor={(voice) => voice.id}
-        renderItem={({ item }) => <VoiceCard operator={selectedOperator} voice={item} />}
+        renderItem={({ item }) => (
+          <VoiceCard
+            onAddToPlaylist={() => {
+              if (selectedPlaylist) {
+                addVoiceToPlaylist(selectedPlaylist.id, selectedOperator.id, item.id);
+              }
+            }}
+            operator={selectedOperator}
+            targetPlaylist={selectedPlaylist}
+            voice={item}
+          />
+        )}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         ListHeaderComponent={
           <SafeAreaView style={styles.detailHeader}>
@@ -297,6 +405,11 @@ export default function VoiceCatalogScreen() {
             <AudioLibraryNotice
               availableVoiceCount={availableVoiceCount}
               status={voiceAudioLibraryStatus}
+            />
+            <PlaylistTargetPicker
+              onSelect={setSelectedPlaylistId}
+              playlists={playlists}
+              selectedPlaylistId={selectedPlaylist?.id ?? null}
             />
           </SafeAreaView>
         }
@@ -469,12 +582,22 @@ const styles = StyleSheet.create({
   voiceTitle: {
     flex: 1,
   },
-  demoButton: {
+  voiceActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
+  },
+  voiceButton: {
+    flexGrow: 1,
+    minWidth: 180,
     minHeight: 44,
     borderRadius: Spacing.three,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: Spacing.three,
+  },
+  addedText: {
+    color: '#246B32',
   },
   notice: {
     borderRadius: Spacing.three,

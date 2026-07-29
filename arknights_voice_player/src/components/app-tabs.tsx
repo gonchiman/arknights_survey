@@ -27,6 +27,14 @@ export default function AppTabs() {
           renderingMode="template"
         />
       </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="playlists">
+        <NativeTabs.Trigger.Label>プレイリスト</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
+          src={require('@/assets/images/tabIcons/explore.png')}
+          renderingMode="template"
+        />
+      </NativeTabs.Trigger>
     </NativeTabs>
   );
 }

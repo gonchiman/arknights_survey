@@ -19,6 +19,7 @@ const catalog: VoiceCatalog = {
     profession: operatorProfessions[operator.id] ?? null,
   })),
 };
+const operatorById = new Map(catalog.operators.map((operator) => [operator.id, operator]));
 
 function normalizeQuery(value: string) {
   return value.trim().toLocaleLowerCase();
@@ -26,6 +27,18 @@ function normalizeQuery(value: string) {
 
 export function getVoiceCatalog() {
   return catalog;
+}
+
+export function getVoiceLine(operatorId: string, voiceId: string) {
+  const operator = operatorById.get(operatorId);
+
+  if (!operator) {
+    return null;
+  }
+
+  const voice = operator.voices.find((candidate) => candidate.id === voiceId);
+
+  return voice ? { operator, voice } : null;
 }
 
 export function searchVoiceOperators(
