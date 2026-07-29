@@ -12,6 +12,7 @@ export type VoiceOperator = {
   id: string;
   name: string;
   rarity: number | null;
+  profession: string | null;
   voices: VoiceLine[];
 };
 

@@ -1,19 +1,22 @@
+import rawOperatorProfessions from '@/assets/data/operator_professions.json';
 import rawOperatorRarities from '@/assets/data/operator_rarities.json';
 import rawCatalog from '@/assets/data/voice_catalog.json';
 import type { VoiceCatalog, VoiceLine, VoiceOperator } from '@/models/voice-line';
 
-type VoiceOperatorWithoutRarity = Omit<VoiceOperator, 'rarity'>;
-type VoiceCatalogWithoutRarity = Omit<VoiceCatalog, 'operators'> & {
-  operators: VoiceOperatorWithoutRarity[];
+type VoiceOperatorWithoutMetadata = Omit<VoiceOperator, 'profession' | 'rarity'>;
+type VoiceCatalogWithoutMetadata = Omit<VoiceCatalog, 'operators'> & {
+  operators: VoiceOperatorWithoutMetadata[];
 };
 
-const sourceCatalog = rawCatalog as VoiceCatalogWithoutRarity;
+const sourceCatalog = rawCatalog as VoiceCatalogWithoutMetadata;
 const operatorRarities = rawOperatorRarities as Record<string, number>;
+const operatorProfessions = rawOperatorProfessions as Record<string, string>;
 const catalog: VoiceCatalog = {
   ...sourceCatalog,
   operators: sourceCatalog.operators.map((operator) => ({
     ...operator,
     rarity: operatorRarities[operator.id] ?? null,
+    profession: operatorProfessions[operator.id] ?? null,
   })),
 };
 
@@ -27,19 +30,21 @@ export function getVoiceCatalog() {
 
 export function searchVoiceOperators(
   query: string,
-  rarity: number | null = null
+  rarity: number | null = null,
+  profession: string | null = null
 ): VoiceOperator[] {
   const normalizedQuery = normalizeQuery(query);
 
   return catalog.operators.filter((operator) => {
     const matchesRarity = rarity === null || operator.rarity === rarity;
+    const matchesProfession = profession === null || operator.profession === profession;
     const matchesQuery =
       !normalizedQuery ||
       [operator.name, operator.id].some((value) =>
         value.toLocaleLowerCase().includes(normalizedQuery)
       );
 
-    return matchesRarity && matchesQuery;
+    return matchesRarity && matchesProfession && matchesQuery;
   });
 }
 

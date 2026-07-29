@@ -26,6 +26,21 @@ import {
 
 const catalog = getVoiceCatalog();
 const rarityOptions = [null, 6, 5, 4, 3, 2, 1] as const;
+const professionOptions = [
+  { value: null, label: 'すべて' },
+  { value: 'PIONEER', label: '先鋒' },
+  { value: 'WARRIOR', label: '前衛' },
+  { value: 'TANK', label: '重装' },
+  { value: 'SNIPER', label: '狙撃' },
+  { value: 'CASTER', label: '術師' },
+  { value: 'MEDIC', label: '医療' },
+  { value: 'SUPPORT', label: '補助' },
+  { value: 'SPECIAL', label: '特殊' },
+] as const;
+
+function getProfessionLabel(profession: string | null) {
+  return professionOptions.find((option) => option.value === profession)?.label ?? '不明';
+}
 
 function OperatorCard({ operator, onPress }: { operator: VoiceOperator; onPress: () => void }) {
   const theme = useTheme();
@@ -40,6 +55,9 @@ function OperatorCard({ operator, onPress }: { operator: VoiceOperator; onPress:
           </ThemedText>
         </View>
         <View style={styles.cardBadges}>
+          <View style={[styles.professionBadge, { backgroundColor: theme.backgroundSelected }]}>
+            <ThemedText type="smallBold">{getProfessionLabel(operator.profession)}</ThemedText>
+          </View>
           <View style={[styles.rarityBadge, { backgroundColor: theme.backgroundSelected }]}>
             <ThemedText type="smallBold">
               {operator.rarity === null ? '不明' : `★${operator.rarity}`}
@@ -66,7 +84,7 @@ function RarityFilter({
   return (
     <View style={styles.filterSection}>
       <ThemedText type="smallBold">レアリティ</ThemedText>
-      <View style={styles.rarityOptions}>
+      <View style={styles.filterOptions}>
         {rarityOptions.map((rarity) => {
           const isSelected = rarity === selectedRarity;
           const label = rarity === null ? 'すべて' : `★${rarity}`;
@@ -79,13 +97,54 @@ function RarityFilter({
               key={label}
               onPress={() => onSelect(rarity)}
               style={({ pressed }) => [
-                styles.rarityOption,
+                styles.filterOption,
                 {
                   backgroundColor: isSelected ? '#208AEF' : theme.backgroundElement,
                   opacity: pressed ? 0.7 : 1,
                 },
               ]}>
-              <ThemedText type="smallBold" style={isSelected && styles.selectedRarityText}>
+              <ThemedText type="smallBold" style={isSelected && styles.selectedFilterText}>
+                {label}
+              </ThemedText>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+function ProfessionFilter({
+  onSelect,
+  selectedProfession,
+}: {
+  onSelect: (profession: string | null) => void;
+  selectedProfession: string | null;
+}) {
+  const theme = useTheme();
+
+  return (
+    <View style={styles.filterSection}>
+      <ThemedText type="smallBold">職業</ThemedText>
+      <View style={styles.filterOptions}>
+        {professionOptions.map(({ label, value }) => {
+          const isSelected = value === selectedProfession;
+
+          return (
+            <Pressable
+              accessibilityLabel={`職業 ${label}`}
+              accessibilityRole="button"
+              accessibilityState={{ selected: isSelected }}
+              key={label}
+              onPress={() => onSelect(value)}
+              style={({ pressed }) => [
+                styles.filterOption,
+                {
+                  backgroundColor: isSelected ? '#208AEF' : theme.backgroundElement,
+                  opacity: pressed ? 0.7 : 1,
+                },
+              ]}>
+              <ThemedText type="smallBold" style={isSelected && styles.selectedFilterText}>
                 {label}
               </ThemedText>
             </Pressable>
@@ -178,10 +237,11 @@ export default function VoiceCatalogScreen() {
   const [query, setQuery] = useState('');
   const [voiceQuery, setVoiceQuery] = useState('');
   const [selectedRarity, setSelectedRarity] = useState<number | null>(6);
+  const [selectedProfession, setSelectedProfession] = useState<string | null>(null);
   const [selectedOperator, setSelectedOperator] = useState<VoiceOperator | null>(null);
   const filteredOperators = useMemo(
-    () => searchVoiceOperators(query, selectedRarity),
-    [query, selectedRarity]
+    () => searchVoiceOperators(query, selectedRarity, selectedProfession),
+    [query, selectedProfession, selectedRarity]
   );
   const filteredVoices = useMemo(
     () => (selectedOperator ? searchVoiceLines(selectedOperator, voiceQuery) : []),
@@ -289,6 +349,10 @@ export default function VoiceCatalogScreen() {
             value={query}
           />
           <RarityFilter onSelect={setSelectedRarity} selectedRarity={selectedRarity} />
+          <ProfessionFilter
+            onSelect={setSelectedProfession}
+            selectedProfession={selectedProfession}
+          />
           <ThemedText type="small" themeColor="textSecondary">
             {filteredOperators.length}件を表示
           </ThemedText>
@@ -332,12 +396,12 @@ const styles = StyleSheet.create({
   filterSection: {
     gap: Spacing.two,
   },
-  rarityOptions: {
+  filterOptions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.two,
   },
-  rarityOption: {
+  filterOption: {
     minWidth: 56,
     minHeight: 40,
     borderRadius: Spacing.five,
@@ -345,7 +409,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: Spacing.three,
   },
-  selectedRarityText: {
+  selectedFilterText: {
     color: '#FFFFFF',
   },
   operatorCard: {
@@ -369,6 +433,14 @@ const styles = StyleSheet.create({
   },
   rarityBadge: {
     minWidth: 44,
+    minHeight: 36,
+    borderRadius: Spacing.five,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.two,
+  },
+  professionBadge: {
+    minWidth: 56,
     minHeight: 36,
     borderRadius: Spacing.five,
     alignItems: 'center',

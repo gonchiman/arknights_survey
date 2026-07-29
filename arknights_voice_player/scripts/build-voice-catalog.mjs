@@ -14,6 +14,7 @@ const operatorsPath = resolve(
 );
 const outputPath = resolve(projectRoot, 'assets/data/voice_catalog.json');
 const raritiesOutputPath = resolve(projectRoot, 'assets/data/operator_rarities.json');
+const professionsOutputPath = resolve(projectRoot, 'assets/data/operator_professions.json');
 
 async function readJson(path) {
   return JSON.parse(await readFile(path, 'utf8'));
@@ -54,6 +55,7 @@ function buildCatalog(voiceLines, operators) {
         {
           name: operator.name,
           rarity: parseRarity(operator.rarity, operator.id),
+          profession: requireString(operator.profession, 'profession', operator.id),
         },
       ])
   );
@@ -86,12 +88,14 @@ function buildCatalog(voiceLines, operators) {
 
   const missingOperatorNames = [];
   const operatorRarities = {};
+  const operatorProfessions = {};
   const catalogOperators = [...groupedVoices.entries()].map(([id, voices]) => {
     const metadata = operatorMetadata.get(id);
     if (!metadata) {
       missingOperatorNames.push(id);
     } else {
       operatorRarities[id] = metadata.rarity;
+      operatorProfessions[id] = metadata.profession;
     }
 
     voices.sort((left, right) => left.index - right.index || left.id.localeCompare(right.id));
@@ -114,6 +118,7 @@ function buildCatalog(voiceLines, operators) {
       operators: catalogOperators,
     },
     operatorRarities,
+    operatorProfessions,
     missingOperatorNames,
   };
 }
@@ -123,16 +128,25 @@ async function main() {
     readJson(voiceLinesPath),
     readJson(operatorsPath),
   ]);
-  const { catalog, operatorRarities, missingOperatorNames } = buildCatalog(voiceLines, operators);
+  const {
+    catalog,
+    operatorRarities,
+    operatorProfessions,
+    missingOperatorNames,
+  } = buildCatalog(voiceLines, operators);
 
   await mkdir(dirname(outputPath), { recursive: true });
   await Promise.all([
     writeFile(outputPath, `${JSON.stringify(catalog)}\n`, 'utf8'),
     writeFile(raritiesOutputPath, `${JSON.stringify(operatorRarities)}\n`, 'utf8'),
+    writeFile(professionsOutputPath, `${JSON.stringify(operatorProfessions)}\n`, 'utf8'),
   ]);
 
   console.log(`${catalog.operatorCount} operators written to ${outputPath}`);
   console.log(`${Object.keys(operatorRarities).length} rarities written to ${raritiesOutputPath}`);
+  console.log(
+    `${Object.keys(operatorProfessions).length} professions written to ${professionsOutputPath}`
+  );
   console.log(`${catalog.voiceCount} voice lines included`);
   console.log(`${missingOperatorNames.length} operator names missing`);
 
